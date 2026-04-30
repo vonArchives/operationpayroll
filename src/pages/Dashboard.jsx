@@ -10,13 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowRight, Users, FileText } from "lucide-react";
 
 export default function Dashboard() {
-  const { employees, payrollSent_period1, payrollSent_period2, switchPeriod } = usePayroll();
+  const { employees, payrollPeriod, payrollSent, loading, error } = usePayroll();
   const navigate = useNavigate();
-  const [activeDashPeriod, setActiveDashPeriod] = useState("period1");
-
-  const statusKey = `status_${activeDashPeriod}`;
-  const payrollKey = `payroll_${activeDashPeriod}`;
-  const payrollSent = activeDashPeriod === "period2" ? payrollSent_period2 : payrollSent_period1;
 
   const stats = useMemo(() => {
     let approved = 0;
@@ -24,9 +19,9 @@ export default function Dashboard() {
     let totalNetPayout = 0;
 
     employees.forEach((emp) => {
-      if (emp[statusKey] === "Approved") approved++;
+      if (emp.status === "Approved") approved++;
       else pending++;
-      const computed = computePayroll(emp[payrollKey]);
+      const computed = computePayroll(emp.payroll);
       totalNetPayout += computed.net_pay;
     });
 
@@ -39,7 +34,7 @@ export default function Dashboard() {
         currency: "PHP",
       }),
     };
-  }, [employees, statusKey, payrollKey]);
+  }, [employees]);
 
   const payrollStatus = useMemo(() => {
     if (payrollSent) return { label: "Sent", color: "text-green-600 bg-green-50" };
@@ -48,9 +43,8 @@ export default function Dashboard() {
   }, [payrollSent, stats.pending]);
 
   const recentActivity = useMemo(() => {
-    const auditLogKey = `auditLog_${activeDashPeriod}`;
     const allLogs = employees.flatMap((emp) =>
-      emp[auditLogKey].map((log) => ({
+      emp.auditLog.map((log) => ({
         ...log,
         employeeName: emp.name,
         employeeId: emp.id,
@@ -59,7 +53,7 @@ export default function Dashboard() {
     return allLogs
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 10);
-  }, [employees, activeDashPeriod]);
+  }, [employees]);
 
   const getInitials = (name) => {
     if (!name) return "?";
@@ -67,46 +61,22 @@ export default function Dashboard() {
     return parts.map((p) => p[0]).join("").toUpperCase().slice(0, 2);
   };
 
-  const handleNavigateToPayroll = () => {
-    switchPeriod(activeDashPeriod);
-    navigate("/payroll");
-  };
+  if (loading) return <p className="p-6">Loading...</p>;
+  if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of <span className="font-medium text-foreground">{getPayrollPeriodLabel()}</span>
-            <span
-              className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${payrollStatus.color}`}
-            >
-              {payrollStatus.label}
-            </span>
-          </p>
-        </div>
-        <div className="flex rounded-lg border bg-card p-1 w-fit">
-          {[
-            { key: "period1", label: "Period 1", sub: "Mid-Month" },
-            { key: "period2", label: "Period 2", sub: "End-of-Month" },
-          ].map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setActiveDashPeriod(p.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeDashPeriod === p.key
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {p.label}
-              <span className={`ml-1 text-xs ${activeDashPeriod === p.key ? "text-white/80" : ""}`}>
-                {p.sub}
-              </span>
-            </button>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Overview of your payroll for{" "}
+          <span className="font-medium text-foreground">{payrollPeriod}</span>
+          <span
+            className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${payrollStatus.color}`}
+          >
+            {payrollStatus.label}
+          </span>
+        </p>
       </div>
 
       <StatCards stats={stats} />
@@ -161,11 +131,11 @@ export default function Dashboard() {
             <Button
               variant="outline"
               className="w-full justify-between"
-              onClick={handleNavigateToPayroll}
+              onClick={() => navigate("/payroll")}
             >
               <span className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Go to Payroll Summary
+                Go to Payroll Run
               </span>
               <ArrowRight className="h-4 w-4" />
             </Button>

@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { usePayroll } from "@/hooks/usePayroll";
-import { useRolePermissions } from "@/hooks/useRolePermissions";
 import {
   Table,
   TableBody,
@@ -31,11 +30,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import PayslipCard from "@/components/payroll/PayslipCard";
-import { Search, ArrowUpDown, Eye, Users, FileText, Pencil, Check, X } from "lucide-react";
+import { Search, ArrowUpDown, Eye, Users, FileText } from "lucide-react";
 
 const ROLE_BADGES = {
   admin: { label: "Admin", variant: "default" },
-  moderator: { label: "Moderator", variant: "secondary" },
+  manager: { label: "Manager", variant: "secondary" },
   employee: { label: "Employee", variant: "outline" },
 };
 
@@ -63,43 +62,12 @@ function TableSkeleton() {
 }
 
 export default function Employees() {
-  const { employees, payrollPeriod, updateEmployee } = usePayroll();
-  const perms = useRolePermissions();
+  const { employees, payrollPeriod, loading, error } = usePayroll();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const startEdit = (emp) => {
-    setEditingId(emp.id);
-    setEditForm({
-      name: emp.name,
-      position: emp.position,
-      department: emp.department,
-      role: emp.role,
-      email: emp.email,
-    });
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditForm({});
-  };
-
-  const saveEdit = () => {
-    updateEmployee(editingId, editForm);
-    setEditingId(null);
-    setEditForm({});
-  };
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -126,6 +94,8 @@ export default function Employees() {
     setCurrentPage(1);
   }, [search, sortAsc]);
 
+  if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
+  
   const openPayslip = (emp) => {
     setSelectedEmployee(emp);
     setDialogOpen(true);
@@ -152,19 +122,10 @@ export default function Employees() {
           <Input
             type="text"
             placeholder="Search by name or department..."
-            className="pl-9 pr-9"
+            className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -202,92 +163,40 @@ export default function Employees() {
                         </button>
                       </TableHead>
                       <TableHead>Position</TableHead>
+                      <TableHead>Department</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                   <TableBody>
-                     {paginated.map((emp) => {
-                       const isEditing = editingId === emp.id;
-                       return (
-                       <TableRow key={emp.id}>
-                         <TableCell>
-                           <Avatar className="h-9 w-9">
-                             <AvatarFallback className="text-xs">
-                               {getInitials(emp.name)}
-                             </AvatarFallback>
-                           </Avatar>
-                         </TableCell>
-                         <TableCell className="font-medium">
-                           {isEditing ? (
-                             <Input
-                               value={editForm.name}
-                               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                               className="h-8"
-                             />
-                           ) : (
-                             emp.name
-                           )}
-                         </TableCell>
-                         <TableCell>
-                           {isEditing ? (
-                             <Input
-                               value={editForm.position}
-                               onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                               className="h-8"
-                             />
-                           ) : (
-                             emp.position
-                           )}
-                         </TableCell>
-                         <TableCell>
-                           {isEditing ? (
-                             <Input
-                               value={editForm.department}
-                               onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                               className="h-8"
-                             />
-                           ) : (
-                             roleBadge(emp.role)
-                           )}
-                         </TableCell>
-                         <TableCell className="text-right">
-                           {isEditing ? (
-                             <div className="flex items-center justify-end gap-1">
-                               <Button variant="ghost" size="sm" onClick={saveEdit}>
-                                 <Check className="h-4 w-4" />
-                               </Button>
-                               <Button variant="ghost" size="sm" onClick={cancelEdit}>
-                                 <X className="h-4 w-4" />
-                               </Button>
-                             </div>
-                           ) : (
-                             <div className="flex items-center justify-end gap-1">
-                                {perms.isAdmin && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openPayslip(emp)}
-                                  >
-                                    <Eye className="mr-1 h-4 w-4" />
-                                    View Payslip
-                                  </Button>
-                                )}
-                                {perms.isAdmin && (
-                                  <Button variant="ghost" size="sm" onClick={() => startEdit(emp)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {!perms.isAdmin && (
-                                 <span className="text-xs text-muted-foreground">View only</span>
-                               )}
-                             </div>
-                           )}
-                         </TableCell>
-                       </TableRow>
-                       );
-                     })}
-                   </TableBody>
+                  <TableBody>
+                    {paginated.map((emp) => (
+                      <TableRow key={emp.id}>
+                        <TableCell>
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="text-xs">
+                              {getInitials(emp.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {emp.name}
+                        </TableCell>
+                        <TableCell>{emp.position}</TableCell>
+                        <TableCell>{emp.department}</TableCell>
+                        <TableCell>{roleBadge(emp.role)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPayslip(emp)}
+                          >
+                            <Eye className="mr-1 h-4 w-4" />
+                            View Payslip
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
                 </Table>
               </div>
 

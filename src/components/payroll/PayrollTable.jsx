@@ -27,8 +27,9 @@ import {
   ClipboardList,
 } from "lucide-react";
 
+// FIXED: Added '|| 0' so that Number(undefined) doesn't turn into NaN
 function formatCurrency(value) {
-  return Number(value).toLocaleString("en-PH", {
+  return Number(value || 0).toLocaleString("en-PH", {
     style: "currency",
     currency: "PHP",
   });
@@ -54,11 +55,21 @@ export default function PayrollTable({
 
   const getEmployeeData = (emp) => {
     if (isMonthly) {
-      return computeMonthlySummary(emp);
+      return computeMonthlySummary(emp) || {};
     }
-    const payroll = emp[payrollKey];
-    const computed = computePayroll(payroll);
-    return { payroll, computed, status: emp[statusKey], auditLog: emp[auditLogKey] };
+    
+    // FIXED: Added fallback to emp.payroll and default empty object
+    const payroll = emp[payrollKey] || emp.payroll || {}; 
+    
+    // FIXED: Only compute if payroll has data to prevent compute errors
+    const computed = Object.keys(payroll).length > 0 ? computePayroll(payroll) : {};
+    
+    return { 
+      payroll, 
+      computed, 
+      status: emp[statusKey] || emp.status || "Pending", 
+      auditLog: emp[auditLogKey] || emp.auditLog || [] 
+    };
   };
 
   return (
@@ -158,8 +169,8 @@ export default function PayrollTable({
         <TableBody>
           {employees.map((emp) => {
             const data = getEmployeeData(emp);
-            const payroll = isMonthly ? data : data.payroll;
-            const computed = isMonthly ? data : data.computed;
+            const payroll = isMonthly ? data : data.payroll || {};
+            const computed = isMonthly ? data : data.computed || {};
             const status = isMonthly ? null : data.status;
 
             return (
@@ -169,39 +180,40 @@ export default function PayrollTable({
                 </TableCell>
                 {showBasic && (
                   <>
-                    {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll.daily_pay)}</TableCell>}
-                    <TableCell>{payroll.work_days}</TableCell>
-                    {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed.total_basic_pay)}</TableCell>}
+                    {/* FIXED: Optional chaining used just to be safe */}
+                    {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll?.daily_pay)}</TableCell>}
+                    <TableCell>{payroll?.work_days || 0}</TableCell>
+                    {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
                   </>
                 )}
                 {showEarnings && (
                   <>
-                    <TableCell>{formatCurrency(payroll.holiday_pay)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.snwh_pay)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.wellness_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.communication_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.birthday_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.commission)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.bonuses)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.thirteenth_month_pay)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(computed.total_earnings)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.holiday_pay)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.snwh_pay)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.wellness_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.communication_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.birthday_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.commission)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.bonuses)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.thirteenth_month_pay)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(computed?.total_earnings)}</TableCell>
                   </>
                 )}
                 {showDeductions && (
                   <>
-                    <TableCell>{formatCurrency(payroll.cash_advance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.sss)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.philhealth)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.pagibig)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.hmo)}</TableCell>
-                    <TableCell>{formatCurrency(payroll.others)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(computed.total_deductions)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.cash_advance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.sss)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.philhealth)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.pagibig)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.hmo)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.others)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(computed?.total_deductions)}</TableCell>
                   </>
                 )}
                 {perms.canViewFinalPay && (
                   <TableCell className="font-bold text-purple-700">
-                    {formatCurrency(computed.net_pay)}
+                    {formatCurrency(computed?.net_pay)}
                   </TableCell>
                 )}
                 <TableCell>
@@ -301,43 +313,43 @@ export default function PayrollTable({
           })}
 
           {/* Totals row */}
-          {perms.canViewTotalsRow && (
+          {perms.canViewTotalsRow && totals && (
             <TableRow className="border-t-2 border-border bg-muted font-bold">
               <TableCell className="sticky left-0 z-10 bg-muted">TOTALS</TableCell>
               {showBasic && (
                 <>
-                  {perms.canViewDailyRate && <TableCell>{formatCurrency(totals.daily_pay)}</TableCell>}
-                  <TableCell>{totals.work_days}</TableCell>
-                  {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals.total_basic_pay)}</TableCell>}
+                  {perms.canViewDailyRate && <TableCell>{formatCurrency(totals?.daily_pay)}</TableCell>}
+                  <TableCell>{totals?.work_days || 0}</TableCell>
+                  {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals?.total_basic_pay)}</TableCell>}
                 </>
               )}
               {showEarnings && (
                 <>
-                  <TableCell>{formatCurrency(totals.holiday_pay)}</TableCell>
-                  <TableCell>{formatCurrency(totals.snwh_pay)}</TableCell>
-                  <TableCell>{formatCurrency(totals.wellness_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals.communication_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals.birthday_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals.commission)}</TableCell>
-                  <TableCell>{formatCurrency(totals.allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals.bonuses)}</TableCell>
-                  <TableCell>{formatCurrency(totals.thirteenth_month_pay)}</TableCell>
-                  <TableCell>{formatCurrency(totals.total_earnings)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.holiday_pay)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.snwh_pay)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.wellness_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.communication_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.birthday_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.commission)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.bonuses)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.thirteenth_month_pay)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.total_earnings)}</TableCell>
                 </>
               )}
               {showDeductions && (
                 <>
-                  <TableCell>{formatCurrency(totals.cash_advance)}</TableCell>
-                  <TableCell>{formatCurrency(totals.sss)}</TableCell>
-                  <TableCell>{formatCurrency(totals.philhealth)}</TableCell>
-                  <TableCell>{formatCurrency(totals.pagibig)}</TableCell>
-                  <TableCell>{formatCurrency(totals.hmo)}</TableCell>
-                  <TableCell>{formatCurrency(totals.others)}</TableCell>
-                  <TableCell>{formatCurrency(totals.total_deductions)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.cash_advance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.sss)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.philhealth)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.pagibig)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.hmo)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.others)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.total_deductions)}</TableCell>
                 </>
               )}
               <TableCell className="text-purple-700">
-                {formatCurrency(totals.net_pay)}
+                {formatCurrency(totals?.net_pay)}
               </TableCell>
               <TableCell />
               {!isMonthly && <TableCell />}

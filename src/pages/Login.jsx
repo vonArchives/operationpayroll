@@ -48,26 +48,28 @@ export default function Login() {
   return (
     <div className="flex min-h-svh">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-blue-950 p-12 text-white relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-slate-900 p-12 text-white relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-2xl font-bold">
-            <img src={logo} alt="JPMC" className="h-10 w-10 object-contain rounded-lg" />
-            <span>JPMC Payroll</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-900 font-bold">
+              P
+            </div>
+            <span>PaySync</span>
           </div>
         </div>
         <div className="relative z-10">
           <h2 className="text-4xl font-bold leading-tight">Payroll, handled.</h2>
-          <p className="mt-4 text-lg text-blue-200">
-            Enterprise-grade payroll for the world's leading financial institution.
+          <p className="mt-4 text-lg text-slate-300">
+            Simplified payroll management for modern teams.
           </p>
         </div>
-        <div className="relative z-10 text-sm text-blue-300">
+        <div className="relative z-10 text-sm text-slate-400">
           Admin and Manager accounts only
         </div>
         {/* Subtle gradient background element */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-400/5 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
       {/* Right form panel */}

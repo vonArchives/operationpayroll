@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useAuth } from "@/context/AuthContext";
 import { computePayroll, computeMonthlySummary } from "@/lib/payrollUtils";
@@ -40,57 +40,68 @@ const PERIODS = [
 ];
 
 export default function PayrollRun() {
+  // MERGED: Destructuring UI period variables AND Database loading/error states
   const {
     employees,
     payrollPeriod,
     payrollSent_period1,
     payrollSent_period2,
-    currentPeriod,
+    payrollSent, // Handled if DB hook provides a unified status
+    currentPeriod = "period1", // Fallback default
     switchPeriod,
     sendPayroll,
+    loading,
+    error,
   } = usePayroll();
+  
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
   const [showBasic, setShowBasic] = useState(true);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showDeductions, setShowDeductions] = useState(true);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, [currentPeriod]);
-
+  // Period-specific dynamic keys
   const isMonthly = currentPeriod === "monthly";
   const statusKey = isMonthly ? null : `status_${currentPeriod}`;
   const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
-  const payrollSent = isMonthly ? false : currentPeriod === "period1" ? payrollSent_period1 : payrollSent_period2;
+  
+  // Handles both V1 explicit variables and V2 unified database variables
+  const isPayrollSent = isMonthly
+    ? false
+    : (payrollSent ?? (currentPeriod === "period1" ? payrollSent_period1 : payrollSent_period2));
 
   const filteredEmployees = useMemo(() => {
     let data = [...employees];
     const term = search.trim().toLowerCase();
+    
     if (term) {
       data = data.filter((emp) => emp.name.toLowerCase().includes(term));
     }
+    
     if (!isMonthly && filter !== "all") {
-      data = data.filter((emp) => emp[statusKey] === (filter === "approved" ? "Approved" : "Pending"));
+      // Fallback allows for nested period data OR flattened Supabase data
+      data = data.filter((emp) => {
+        const empStatus = emp[statusKey] || emp.status;
+        return empStatus === (filter === "approved" ? "Approved" : "Pending");
+      });
     }
     return data;
   }, [employees, search, filter, isMonthly, statusKey]);
 
   const approvedCount = useMemo(() => {
     if (isMonthly) return 0;
-    return employees.filter((e) => e[statusKey] === "Approved").length;
+    return employees.filter((e) => (e[statusKey] || e.status) === "Approved").length;
   }, [employees, isMonthly, statusKey]);
 
   const totalCount = employees.length;
   const progress = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
   const allApproved = approvedCount === totalCount && totalCount > 0;
-  const canSend = !isMonthly && allApproved && !payrollSent;
+  const canSend = !isMonthly && allApproved && !isPayrollSent;
 
   const handleSend = () => {
+    // Passing both user and period just in case the Supabase hook requires it
     sendPayroll(user.name, currentPeriod);
     toast.success(`${PERIODS.find((p) => p.key === currentPeriod)?.label} payroll sent successfully!`);
     setSendDialogOpen(false);
@@ -98,7 +109,7 @@ export default function PayrollRun() {
 
   const sendDisabledReason = isMonthly
     ? "Send is only available for individual periods"
-    : payrollSent
+    : isPayrollSent
     ? "Payroll has already been sent for this period"
     : !allApproved
     ? "All records must be approved before sending"
@@ -106,27 +117,12 @@ export default function PayrollRun() {
 
   const totals = useMemo(() => {
     const t = {
-      daily_pay: 0,
-      work_days: 0,
-      total_basic_pay: 0,
-      holiday_pay: 0,
-      snwh_pay: 0,
-      wellness_allowance: 0,
-      communication_allowance: 0,
-      birthday_allowance: 0,
-      commission: 0,
-      allowance: 0,
-      bonuses: 0,
-      thirteenth_month_pay: 0,
-      total_earnings: 0,
-      cash_advance: 0,
-      sss: 0,
-      philhealth: 0,
-      pagibig: 0,
-      hmo: 0,
-      others: 0,
-      total_deductions: 0,
-      net_pay: 0,
+      daily_pay: 0, work_days: 0, total_basic_pay: 0, holiday_pay: 0,
+      snwh_pay: 0, wellness_allowance: 0, communication_allowance: 0,
+      birthday_allowance: 0, commission: 0, allowance: 0, bonuses: 0,
+      thirteenth_month_pay: 0, total_earnings: 0, cash_advance: 0,
+      sss: 0, philhealth: 0, pagibig: 0, hmo: 0, others: 0,
+      total_deductions: 0, net_pay: 0,
     };
 
     filteredEmployees.forEach((emp) => {
@@ -135,7 +131,9 @@ export default function PayrollRun() {
         c = computeMonthlySummary(emp);
         p = c;
       } else {
-        p = emp[payrollKey];
+        // Fallback to emp.payroll if the Supabase object is flattened
+        p = emp[payrollKey] || emp.payroll;
+        if (!p) return; // Prevent crashes if data is missing during load
         c = computePayroll(p);
       }
 
@@ -163,6 +161,18 @@ export default function PayrollRun() {
     });
     return t;
   }, [filteredEmployees, isMonthly, payrollKey]);
+
+  // Handle actual database errors immediately
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+          <p className="font-medium">Error loading payroll data</p>
+          <p className="text-sm">{error.message || error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -228,10 +238,7 @@ export default function PayrollRun() {
         {PERIODS.map((p) => (
           <button
             key={p.key}
-            onClick={() => {
-              switchPeriod(p.key);
-              setLoading(true);
-            }}
+            onClick={() => switchPeriod && switchPeriod(p.key)}
             className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               currentPeriod === p.key
                 ? "bg-primary text-white"

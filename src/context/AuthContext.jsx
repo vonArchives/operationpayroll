@@ -1,13 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { mockEmployees } from "@/lib/mockData";
-
-/**
- * AuthContext
- *
- * Manages authentication state for PaySync.
- * Only users with role "admin" or "moderator" may log in.
- * Persists session to localStorage under key "payroll_auth".
- */
+import { supabase } from "@/lib/supabaseClient";
 
 const AuthContext = createContext(null);
 
@@ -31,58 +23,41 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * Authenticate a user by email + password.
-   * Only admin and moderator roles are allowed.
-   * Simulates a 600ms network delay.
-   */
-  const login = useCallback((email, password) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const employee = mockEmployees.find(
-          (emp) =>
-            emp.email.toLowerCase() === email.toLowerCase() &&
-            emp.password === password &&
-            (emp.role === "admin" || emp.role === "moderator")
-        );
+  const login = useCallback(async (email, password) => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-api`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email, password }),
+      }
+    );
 
-        if (employee) {
-          const userData = {
-            id: employee.id,
-            name: employee.name,
-            role: employee.role,
-            email: employee.email,
-            position: employee.position,
-            department: employee.department,
-          };
-          setUser(userData);
-          setIsAuthenticated(true);
-          localStorage.setItem("payroll_auth", JSON.stringify({ user: userData }));
-          resolve({ success: true, user: userData });
-        } else {
-          resolve({ success: false, error: "Invalid credentials or insufficient privileges" });
-        }
-      }, 600);
-    });
-  }, []);
+    const data = await response.json();
 
-  /** Update the user's password. */
-  const updateUserPassword = useCallback((userId, newPassword) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const employee = mockEmployees.find((emp) => emp.id === userId);
-        if (employee) {
-          employee.password = newPassword;
-          setUser((prev) => (prev ? { ...prev, password: newPassword } : prev));
-          resolve({ success: true });
-        } else {
-          resolve({ success: false, error: "User not found" });
-        }
-      }, 300);
-    });
-  }, []);
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        error: data?.error || "Invalid credentials or insufficient privileges",
+      };
+    }
 
-  /** Clear session and reset state. */
+    const userData = data.user;
+    setUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem("payroll_auth", JSON.stringify({ user: userData }));
+    return { success: true, user: userData };
+
+  } catch (err) {
+    console.error("Login error:", err);
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem("payroll_auth");
     setUser(null);
@@ -90,7 +65,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, updateUserPassword }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
