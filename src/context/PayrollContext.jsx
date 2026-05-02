@@ -9,17 +9,15 @@ import React, {
 import { supabase } from "@/lib/supabaseClient";
 
 const now = new Date();
-const payrollPeriod = now.toLocaleDateString("en-US", {
-  month: "long",
-  year: "numeric",
-});
 
 const initialState = {
   employees: [],
   payrollSent_period1: false,
   payrollSent_period2: false,
-  currentPeriod: "period1",
-  payrollPeriod,
+  currentPeriod: now.getDate() <= 15 ? "period1" : "period2",
+  selectedMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+  availableMonths: [],
+  payrollPeriod: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
 };
 
 function payrollReducer(state, action) {
@@ -27,8 +25,31 @@ function payrollReducer(state, action) {
     case "SET_EMPLOYEES":
       return { ...state, employees: action.payload };
 
+    case "SET_AVAILABLE_MONTHS":
+      return { ...state, availableMonths: action.payload };
+
     case "SWITCH_PERIOD":
       return { ...state, currentPeriod: action.payload };
+
+    case "SWITCH_MONTH": {
+      const newMonth = action.payload;
+      const [year, month] = newMonth.split("-").map(Number);
+      const monthDate = new Date(year, month - 1, now.getDate());
+      const isCurrentMonth =
+        year === now.getFullYear() && month === now.getMonth() + 1;
+      const autoPeriod = isCurrentMonth
+        ? now.getDate() <= 15 ? "period1" : "period2"
+        : "period1";
+      return {
+        ...state,
+        selectedMonth: newMonth,
+        currentPeriod: autoPeriod,
+        payrollPeriod: monthDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+      };
+    }
 
     case "EDIT_PAYROLL": {
       const { id, updatedFields, period } = action.payload;
@@ -41,7 +62,6 @@ function payrollReducer(state, action) {
           return {
             ...emp,
             [payrollKey]: updatedPeriod,
-            // Keep payroll in sync with period1 for Dashboard/Employees
             ...(period === "period1" && { payroll: updatedPeriod }),
           };
         }),
@@ -74,10 +94,7 @@ function payrollReducer(state, action) {
 
     case "SEND_PAYROLL": {
       const { period } = action.payload;
-      return {
-        ...state,
-        [`payrollSent_${period}`]: true,
-      };
+      return { ...state, [`payrollSent_${period}`]: true };
     }
 
     case "ADD_AUDIT_LOG": {
@@ -90,9 +107,10 @@ function payrollReducer(state, action) {
           return {
             ...emp,
             [auditKey]: [logEntry, ...(emp[auditKey] || [])],
-            auditLog: period === "period1"
-              ? [logEntry, ...(emp.auditLog || [])]
-              : emp.auditLog,
+            auditLog:
+              period === "period1"
+                ? [logEntry, ...(emp.auditLog || [])]
+                : emp.auditLog,
           };
         }),
       };
@@ -105,12 +123,11 @@ function payrollReducer(state, action) {
 
 const PayrollContext = createContext(null);
 
-// Helper to shape a payroll period row
 function shapePeriod(period) {
   if (!period) return null;
-  const basicpay = Array.isArray(period.payroll_basicpay) 
-  ? period.payroll_basicpay[0] || {} 
-  : period.payroll_basicpay || {};
+  const basicpay = Array.isArray(period.payroll_basicpay)
+    ? period.payroll_basicpay[0] || {}
+    : period.payroll_basicpay || {};
   const additions = Array.isArray(period.payroll_additions)
     ? period.payroll_additions[0] || {}
     : period.payroll_additions || {};
@@ -118,12 +135,12 @@ function shapePeriod(period) {
     ? period.payroll_deductions[0] || {}
     : period.payroll_deductions || {};
   const auditLog = (period.audit_log || []).map((log) => ({
-      id: log.id,
-      action: log.action,
-      performedBy: log.performed_by,
-      timestamp: log.timestamp,
-      changes: log.changes || {},
-    }));
+    id: log.id,
+    action: log.action,
+    performedBy: log.performed_by,
+    timestamp: log.timestamp,
+    changes: log.changes || {},
+  }));
 
   return {
     pr_period_id: period.pr_period_id,
@@ -152,10 +169,65 @@ function shapePeriod(period) {
   };
 }
 
+// Group all periods into employees, filtered by selected month
+function shapeEmployees(data, selectedMonth) {
+  const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+
+  const employeeMap = {};
+  data.forEach((period) => {
+    const emp = period.employee;
+    if (!emp) return;
+    const empId = emp.emp_id;
+    if (!employeeMap[empId]) {
+      employeeMap[empId] = { emp, allPeriods: [] };
+    }
+    employeeMap[empId].allPeriods.push(period);
+  });
+
+  return Object.values(employeeMap).map(({ emp, allPeriods }) => {
+    // Filter to selected month
+    const monthPeriods = allPeriods
+      .filter((p) => {
+        const d = new Date(p.date_from);
+        return (
+          d.getFullYear() === selYear &&
+          d.getMonth() + 1 === selMonth
+        );
+      })
+      .sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
+
+    const period1 = shapePeriod(monthPeriods[0]);
+    const period2 = shapePeriod(monthPeriods[1]);
+
+    return {
+      id: emp.emp_id,
+      name: `${emp.first_name} ${emp.last_name}`,
+      first_name: emp.first_name,
+      last_name: emp.last_name,
+      position: emp.position,
+      department: emp.department,
+      role: emp.role,
+      email: emp.email,
+      payroll_period1: period1,
+      status_period1: period1?.status || "Pending",
+      pr_period_id_period1: period1?.pr_period_id,
+      auditLog_period1: period1?.auditLog || [],
+      payroll_period2: period2,
+      status_period2: period2?.status || "Pending",
+      pr_period_id_period2: period2?.pr_period_id,
+      auditLog_period2: period2?.auditLog || [],
+      payroll: period1 || {},
+      status: period1?.status || "Pending",
+      auditLog: period1?.auditLog || [],
+    };
+  });
+}
+
 export function PayrollProvider({ children }) {
   const [state, dispatch] = useReducer(payrollReducer, initialState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [allPeriodData, setAllPeriodData] = useState([]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -219,46 +291,27 @@ export function PayrollProvider({ children }) {
 
         if (error) throw error;
 
-        // Group periods by employee
-        const employeeMap = {};
-        data.forEach((period) => {
-          const emp = period.employee;
-          if (!emp) return;
-          const empId = emp.emp_id;
-          if (!employeeMap[empId]) {
-            employeeMap[empId] = { emp, periods: [] };
-          }
-          employeeMap[empId].periods.push(period);
+        // Get unique months from all periods
+        const monthSet = new Set();
+        data.forEach((p) => {
+          const d = new Date(p.date_from);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          monthSet.add(key);
         });
 
-        // Shape into employee objects
-        const shaped = Object.values(employeeMap).map(({ emp, periods }) => {
-          periods.sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
-          const period1 = shapePeriod(periods[0]);
-          const period2 = shapePeriod(periods[1]);
-
-          return {
-            id: emp.emp_id,
-            name: `${emp.first_name} ${emp.last_name}`,
-            first_name: emp.first_name,
-            last_name: emp.last_name,
-            position: emp.position,
-            department: emp.department,
-            role: emp.role,
-            email: emp.email,
-            payroll_period1: period1,
-            status_period1: period1?.status || "Pending",
-            pr_period_id_period1: period1?.pr_period_id,
-            auditLog_period1: period1?.auditLog || [],
-            payroll_period2: period2,
-            status_period2: period2?.status || "Pending",
-            pr_period_id_period2: period2?.pr_period_id,
-            auditLog_period2: period2?.auditLog || [],
-            payroll: period1 || {},
-            status: period1?.status || "Pending",
-            auditLog: period1?.auditLog || [],
-          };
+        const availableMonths = [...monthSet].sort().reverse().map((key) => {
+          const [year, month] = key.split("-").map(Number);
+          const label = new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          });
+          return { key, label };
         });
+
+        setAllPeriodData(data);
+        dispatch({ type: "SET_AVAILABLE_MONTHS", payload: availableMonths });
+
+        const shaped = shapeEmployees(data, state.selectedMonth);
         dispatch({ type: "SET_EMPLOYEES", payload: shaped });
       } catch (err) {
         setError(err.message);
@@ -267,12 +320,19 @@ export function PayrollProvider({ children }) {
         setLoading(false);
       }
     };
+
     fetchEmployees();
   }, []);
 
   const switchPeriod = useCallback((period) => {
     dispatch({ type: "SWITCH_PERIOD", payload: period });
   }, []);
+
+  const switchMonth = useCallback((month) => {
+    dispatch({ type: "SWITCH_MONTH", payload: month });
+    const shaped = shapeEmployees(allPeriodData, month);
+    dispatch({ type: "SET_EMPLOYEES", payload: shaped });
+  }, [allPeriodData]);
 
   const editPayroll = useCallback(async (id, updatedFields, performedBy, period = "period1") => {
     dispatch({ type: "EDIT_PAYROLL", payload: { id, updatedFields, period } });
@@ -281,7 +341,6 @@ export function PayrollProvider({ children }) {
     const pr_period_id = emp?.[`pr_period_id_${period}`];
     if (!pr_period_id) return;
 
-    // Map frontend field names to DB column names
     const basicpayMap = { daily_pay: "daily_pay", work_days: "work_days", monthly_pay: "monthly_pay" };
     const additionsMap = {
       holiday_pay: "holiday_pay", snwh_pay: "snwh_pay",
@@ -417,12 +476,14 @@ export function PayrollProvider({ children }) {
 
     if (error) console.error("Failed to send payroll:", error.message);
 
-    const auditEntries = state.employees.map((e) => ({
-      employee_id: e.id,
-      pr_period_id: e[`pr_period_id_${period}`],
-      action: "Payroll Sent",
-      performed_by: performedBy,
-    })).filter((entry) => entry.pr_period_id);
+    const auditEntries = state.employees
+      .map((e) => ({
+        employee_id: e.id,
+        pr_period_id: e[`pr_period_id_${period}`],
+        action: "Payroll Sent",
+        performed_by: performedBy,
+      }))
+      .filter((entry) => entry.pr_period_id);
 
     await supabase.from("audit_log").insert(auditEntries);
 
@@ -445,6 +506,7 @@ export function PayrollProvider({ children }) {
         loading,
         error,
         switchPeriod,
+        switchMonth,
         editPayroll,
         approvePayroll,
         unapprovePayroll,

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useAuth } from "@/context/AuthContext";
 import { computePayroll, computeMonthlySummary } from "@/lib/payrollUtils";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import PayrollTable from "@/components/payroll/PayrollTable";
 import {
   Card,
@@ -40,15 +41,17 @@ const PERIODS = [
 ];
 
 export default function PayrollRun() {
-  // MERGED: Destructuring UI period variables AND Database loading/error states
+  const { isAdmin } = useRolePermissions();
   const {
     employees,
     payrollPeriod,
     payrollSent_period1,
     payrollSent_period2,
-    payrollSent, // Handled if DB hook provides a unified status
-    currentPeriod = "period1", // Fallback default
+    currentPeriod,
+    selectedMonth,
+    availableMonths,
     switchPeriod,
+    switchMonth,
     sendPayroll,
     loading,
     error,
@@ -70,7 +73,7 @@ export default function PayrollRun() {
   // Handles both V1 explicit variables and V2 unified database variables
   const isPayrollSent = isMonthly
     ? false
-    : (payrollSent ?? (currentPeriod === "period1" ? payrollSent_period1 : payrollSent_period2));
+    : currentPeriod === "period1" ? payrollSent_period1 : payrollSent_period2;
 
   const filteredEmployees = useMemo(() => {
     let data = [...employees];
@@ -232,6 +235,26 @@ export default function PayrollRun() {
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Month Selector — Admin only */}
+      {isAdmin && availableMonths.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-muted-foreground">
+            Month:
+          </label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => switchMonth(e.target.value)}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {availableMonths.map((m) => (
+              <option key={m.key} value={m.key}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Period Selector */}
       <div className="flex rounded-lg border bg-card p-1 w-fit">
