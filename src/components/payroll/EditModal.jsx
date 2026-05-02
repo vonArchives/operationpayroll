@@ -73,7 +73,7 @@ export default function EditModal({ employee, open, onClose }) {
     formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: employee?.[payrollKey] || {},
+    defaultValues: employee?.[`payroll_${currentPeriod}`] || employee?.payroll || {},
     mode: "onChange",
   });
 
@@ -82,7 +82,7 @@ export default function EditModal({ employee, open, onClose }) {
   const live = useMemo(() => computePayroll(watched), [watched]);
 
   const onSubmit = (data) => {
-    editPayroll(employee.id, data, perms.user.name, currentPeriod);
+    editPayroll(employee.id, data, perms.user?.name, currentPeriod);
     onClose();
   };
 

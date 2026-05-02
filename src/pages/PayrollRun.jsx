@@ -31,8 +31,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Send, X } from "lucide-react";
+import { Search, Send, X, Plus } from "lucide-react";
 
 const PERIODS = [
   { key: "period1", label: "Period 1", sub: "Mid-Month" },
@@ -55,6 +62,7 @@ export default function PayrollRun() {
     sendPayroll,
     loading,
     error,
+    createPayrollMonth,
   } = usePayroll();
   
   const { user } = useAuth();
@@ -64,6 +72,9 @@ export default function PayrollRun() {
   const [showEarnings, setShowEarnings] = useState(true);
   const [showDeductions, setShowDeductions] = useState(true);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newMonth, setNewMonth] = useState("");
+  const [creating, setCreating] = useState(false);
 
   // Period-specific dynamic keys
   const isMonthly = currentPeriod === "monthly";
@@ -108,6 +119,22 @@ export default function PayrollRun() {
     sendPayroll(user.name, currentPeriod);
     toast.success(`${PERIODS.find((p) => p.key === currentPeriod)?.label} payroll sent successfully!`);
     setSendDialogOpen(false);
+  };
+
+  const handleCreatePayroll = async () => {
+    if (!newMonth) return;
+    setCreating(true);
+    const result = await createPayrollMonth(newMonth);
+    setCreating(false);
+    if (result.success) {
+      toast.success(`Payroll for ${new Date(newMonth + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })} created successfully!`);
+      setCreateDialogOpen(false);
+      setNewMonth("");
+      // Reload the page to fetch new data
+      window.location.reload();
+    } else {
+      toast.error(result.error || "Failed to create payroll.");
+    }
   };
 
   const sendDisabledReason = isMonthly
@@ -181,6 +208,7 @@ export default function PayrollRun() {
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        {/* Left — Title and progress */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Payroll Summary — {payrollPeriod}
@@ -199,42 +227,110 @@ export default function PayrollRun() {
             </div>
           )}
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button disabled={!canSend} className="gap-2">
-                      <Send className="h-4 w-4" />
-                      Send Payroll
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Send Payroll?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Send {PERIODS.find((p) => p.key === currentPeriod)?.label} payroll to all {totalCount} employees? This cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleSend}>
-                        Confirm Send
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </span>
-            </TooltipTrigger>
-            {sendDisabledReason && (
-              <TooltipContent>
-                <p>{sendDisabledReason}</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+
+        {/* Right — Action buttons */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button disabled={!canSend} className="gap-2">
+                        <Send className="h-4 w-4" />
+                        Send Payroll
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Send Payroll?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Send {PERIODS.find((p) => p.key === currentPeriod)?.label} payroll to all {totalCount} employees? This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSend}>
+                          Confirm Send
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </span>
+              </TooltipTrigger>
+              {sendDisabledReason && (
+                <TooltipContent>
+                  <p>{sendDisabledReason}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              New Payroll Month
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Create Payroll Month Dialog */}
+      {isAdmin && (
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Create New Payroll Month</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                This will create Period 1 (1st–15th) and Period 2 (16th–end) for all employees with zero values ready to be edited.
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Month</label>
+                <input
+                  type="month"
+                  value={newMonth}
+                  onChange={(e) => setNewMonth(e.target.value)}
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCreateDialogOpen(false);
+                  setNewMonth("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreatePayroll}
+                disabled={!newMonth || creating}
+                className="gap-2"
+              >
+                {creating ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Create
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Month Selector — Admin only */}
       {isAdmin && availableMonths.length > 0 && (

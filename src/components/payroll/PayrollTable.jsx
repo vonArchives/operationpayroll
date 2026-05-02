@@ -63,7 +63,7 @@ export default function PayrollTable({
     
     // FIXED: Only compute if payroll has data to prevent compute errors
     const computed = Object.keys(payroll).length > 0 ? computePayroll(payroll) : {};
-    
+
     return { 
       payroll, 
       computed, 
@@ -363,6 +363,7 @@ export default function PayrollTable({
           employee={editEmployee}
           open={!!editEmployee}
           onClose={() => setEditEmployee(null)}
+          period={currentPeriod}
         />
       )}
 
@@ -371,6 +372,7 @@ export default function PayrollTable({
           employee={auditEmployee}
           open={!!auditEmployee}
           onClose={() => setAuditEmployee(null)}
+          period={currentPeriod}
         />
       )}
     </div>

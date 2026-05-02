@@ -499,6 +499,86 @@ export function PayrollProvider({ children }) {
     });
   }, [state.employees]);
 
+  const createPayrollMonth = useCallback(async (yearMonth) => {
+    // yearMonth is in format "2026-06" 
+    const [year, month] = yearMonth.split("-").map(Number);
+    
+    // Build date strings
+    const period1From = `${yearMonth}-01`;
+    const period1To = `${yearMonth}-15`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const period2From = `${yearMonth}-16`;
+    const period2To = `${yearMonth}-${lastDay}`;
+
+    // Check for duplicates
+    const { data: existing } = await supabase
+      .from("payroll_period")
+      .select("pr_period_id")
+      .eq("date_from", period1From)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return { success: false, error: "Payroll for this month already exists." };
+    }
+
+    // Get all employees
+    const { data: employees, error: empError } = await supabase
+      .from("employee")
+      .select("emp_id");
+
+    if (empError) return { success: false, error: empError.message };
+
+    // Insert Period 1 and Period 2 for all employees
+    const periods = [];
+    employees.forEach((emp) => {
+      periods.push({ emp_id: emp.emp_id, date_from: period1From, date_to: period1To, status: "Pending" });
+      periods.push({ emp_id: emp.emp_id, date_from: period2From, date_to: period2To, status: "Pending" });
+    });
+
+    const { data: insertedPeriods, error: periodError } = await supabase
+      .from("payroll_period")
+      .insert(periods)
+      .select("pr_period_id");
+
+    if (periodError) return { success: false, error: periodError.message };
+
+    // Insert zero-value basicpay, additions, deductions for each period
+    const basicpayRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id,
+      monthly_pay: 0,
+      daily_pay: 0,
+      work_days: 0,
+    }));
+
+    const additionsRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id,
+      holiday_days: 0, holiday_pay: 0,
+      snwh_days: 0, snwh_pay: 0,
+      wellness_alw: 0, comms_alw: 0,
+      birthday_alw: 0, commission: 0,
+      allowance: 0, bonus: 0, thirteenth_mp: 0,
+    }));
+
+    const deductionsRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id,
+      cash_advance: 0, sss: 0,
+      phil_health: 0, pag_ibig: 0,
+      hmo: 0, others: 0,
+    }));
+
+    const [basicpayResult, additionsResult, deductionsResult] = await Promise.all([
+      supabase.from("payroll_basicpay").insert(basicpayRows),
+      supabase.from("payroll_additions").insert(additionsRows),
+      supabase.from("payroll_deductions").insert(deductionsRows),
+    ]);
+
+    if (basicpayResult.error) return { success: false, error: basicpayResult.error.message };
+    if (additionsResult.error) return { success: false, error: additionsResult.error.message };
+    if (deductionsResult.error) return { success: false, error: deductionsResult.error.message };
+
+    return { success: true };
+  }, []);
+
   return (
     <PayrollContext.Provider
       value={{
@@ -511,6 +591,7 @@ export function PayrollProvider({ children }) {
         approvePayroll,
         unapprovePayroll,
         sendPayroll,
+        createPayrollMonth,
       }}
     >
       {children}
