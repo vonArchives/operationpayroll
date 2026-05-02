@@ -34,7 +34,7 @@ import { Search, ArrowUpDown, Eye, Users, FileText } from "lucide-react";
 
 const ROLE_BADGES = {
   admin: { label: "Admin", variant: "default" },
-  manager: { label: "Manager", variant: "secondary" },
+  moderator: { label: "Moderator", variant: "secondary" },
   employee: { label: "Employee", variant: "outline" },
 };
 

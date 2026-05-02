@@ -16,7 +16,9 @@ const payrollPeriod = now.toLocaleDateString("en-US", {
 
 const initialState = {
   employees: [],
-  payrollSent: false,
+  payrollSent_period1: false,
+  payrollSent_period2: false,
+  currentPeriod: "period1",
   payrollPeriod,
 };
 
@@ -25,44 +27,76 @@ function payrollReducer(state, action) {
     case "SET_EMPLOYEES":
       return { ...state, employees: action.payload };
 
+    case "SWITCH_PERIOD":
+      return { ...state, currentPeriod: action.payload };
+
     case "EDIT_PAYROLL": {
-      const { id, updatedFields, performedBy } = action.payload;
+      const { id, updatedFields, period } = action.payload;
+      const payrollKey = `payroll_${period}`;
       return {
         ...state,
         employees: state.employees.map((emp) => {
           if (emp.id !== id) return emp;
+          const updatedPeriod = { ...emp[payrollKey], ...updatedFields };
           return {
             ...emp,
-            payroll: { ...emp.payroll, ...updatedFields },
+            [payrollKey]: updatedPeriod,
+            // Keep payroll in sync with period1 for Dashboard/Employees
+            ...(period === "period1" && { payroll: updatedPeriod }),
           };
         }),
       };
     }
 
     case "APPROVE_PAYROLL": {
-      const { id } = action.payload;
+      const { id, period } = action.payload;
+      const statusKey = `status_${period}`;
       return {
         ...state,
         employees: state.employees.map((emp) => {
           if (emp.id !== id) return emp;
-          return { ...emp, status: "Approved" };
+          return { ...emp, [statusKey]: "Approved" };
         }),
       };
     }
 
     case "UNAPPROVE_PAYROLL": {
-      const { id } = action.payload;
+      const { id, period } = action.payload;
+      const statusKey = `status_${period}`;
       return {
         ...state,
         employees: state.employees.map((emp) => {
           if (emp.id !== id) return emp;
-          return { ...emp, status: "Pending" };
+          return { ...emp, [statusKey]: "Pending" };
         }),
       };
     }
 
-    case "SEND_PAYROLL":
-      return { ...state, payrollSent: true };
+    case "SEND_PAYROLL": {
+      const { period } = action.payload;
+      return {
+        ...state,
+        [`payrollSent_${period}`]: true,
+      };
+    }
+
+    case "ADD_AUDIT_LOG": {
+      const { id, period, logEntry } = action.payload;
+      const auditKey = `auditLog_${period}`;
+      return {
+        ...state,
+        employees: state.employees.map((emp) => {
+          if (emp.id !== id) return emp;
+          return {
+            ...emp,
+            [auditKey]: [logEntry, ...(emp[auditKey] || [])],
+            auditLog: period === "period1"
+              ? [logEntry, ...(emp.auditLog || [])]
+              : emp.auditLog,
+          };
+        }),
+      };
+    }
 
     default:
       return state;
@@ -70,6 +104,53 @@ function payrollReducer(state, action) {
 }
 
 const PayrollContext = createContext(null);
+
+// Helper to shape a payroll period row
+function shapePeriod(period) {
+  if (!period) return null;
+  const basicpay = Array.isArray(period.payroll_basicpay) 
+  ? period.payroll_basicpay[0] || {} 
+  : period.payroll_basicpay || {};
+  const additions = Array.isArray(period.payroll_additions)
+    ? period.payroll_additions[0] || {}
+    : period.payroll_additions || {};
+  const deductions = Array.isArray(period.payroll_deductions)
+    ? period.payroll_deductions[0] || {}
+    : period.payroll_deductions || {};
+  const auditLog = (period.audit_log || []).map((log) => ({
+      id: log.id,
+      action: log.action,
+      performedBy: log.performed_by,
+      timestamp: log.timestamp,
+      changes: log.changes || {},
+    }));
+
+  return {
+    pr_period_id: period.pr_period_id,
+    date_from: period.date_from,
+    date_to: period.date_to,
+    status: period.status || "Pending",
+    auditLog,
+    daily_pay: basicpay.daily_pay,
+    work_days: basicpay.work_days,
+    monthly_pay: basicpay.monthly_pay,
+    holiday_pay: additions.holiday_pay,
+    snwh_pay: additions.snwh_pay,
+    wellness_allowance: additions.wellness_alw,
+    communication_allowance: additions.comms_alw,
+    birthday_allowance: additions.birthday_alw,
+    commission: additions.commission,
+    allowance: additions.allowance,
+    bonuses: additions.bonus,
+    thirteenth_month_pay: additions.thirteenth_mp,
+    cash_advance: deductions.cash_advance,
+    sss: deductions.sss,
+    philhealth: deductions.phil_health,
+    pagibig: deductions.pag_ibig,
+    hmo: deductions.hmo,
+    others: deductions.others,
+  };
+}
 
 export function PayrollProvider({ children }) {
   const [state, dispatch] = useReducer(payrollReducer, initialState);
@@ -81,198 +162,252 @@ export function PayrollProvider({ children }) {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("employee")
+          .from("payroll_period")
           .select(`
-            emp_id,
-            first_name,
-            last_name,
-            position,
-            department,
-            role,
-            email,
-            payroll_period!payroll_period_emp_id_fkey (
-              pr_period_id,
-              date_from,
-              date_to,
-              basicpay_total,
-              additions_total,
-              deductions_total,
-              net_pay,
-              status,
-              approved_by,
-              payroll_basicpay (
-                monthly_pay,
-                daily_pay,
-                work_days
-              ),
-              payroll_additions (
-                holiday_days,
-                holiday_pay,
-                snwh_days,
-                snwh_pay,
-                wellness_alw,
-                comms_alw,
-                birthday_alw,
-                commission,
-                allowance,
-                bonus,
-                thirteenth_mp
-              ),
-              payroll_deductions (
-                cash_advance,
-                sss,
-                phil_health,
-                pag_ibig,
-                hmo,
-                others
-              )
+            pr_period_id,
+            date_from,
+            date_to,
+            status,
+            approved_by,
+            basicpay_total,
+            additions_total,
+            deductions_total,
+            net_pay,
+            audit_log (
+              id,
+              action,
+              performed_by,
+              timestamp,
+              changes
+            ),
+            payroll_basicpay (
+              monthly_pay,
+              daily_pay,
+              work_days
+            ),
+            payroll_additions (
+              holiday_days,
+              holiday_pay,
+              snwh_days,
+              snwh_pay,
+              wellness_alw,
+              comms_alw,
+              birthday_alw,
+              commission,
+              allowance,
+              bonus,
+              thirteenth_mp
+            ),
+            payroll_deductions (
+              cash_advance,
+              sss,
+              phil_health,
+              pag_ibig,
+              hmo,
+              others
+            ),
+            employee!payroll_period_emp_id_fkey (
+              emp_id,
+              first_name,
+              last_name,
+              position,
+              department,
+              role,
+              email
             )
           `);
 
-    if (error) throw error;
+        if (error) throw error;
 
-    const shaped = data.map((emp) => {
-      const period = emp.payroll_period?.find((p) => {
-        const from = new Date(p.date_from);
-        return (
-          from.getFullYear() === now.getFullYear() &&
-          from.getMonth() === now.getMonth()
-        );
-      });
+        // Group periods by employee
+        const employeeMap = {};
+        data.forEach((period) => {
+          const emp = period.employee;
+          if (!emp) return;
+          const empId = emp.emp_id;
+          if (!employeeMap[empId]) {
+            employeeMap[empId] = { emp, periods: [] };
+          }
+          employeeMap[empId].periods.push(period);
+        });
 
-      // 👇 These were missing
-      const basicpay = period?.payroll_basicpay?.[0] || {};
-      const additions = period?.payroll_additions?.[0] || {};
-      const deductions = period?.payroll_deductions?.[0] || {};
+        // Shape into employee objects
+        const shaped = Object.values(employeeMap).map(({ emp, periods }) => {
+          periods.sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
+          const period1 = shapePeriod(periods[0]);
+          const period2 = shapePeriod(periods[1]);
 
-      return {
-        id: emp.emp_id,
-        name: `${emp.first_name} ${emp.last_name}`,
-        first_name: emp.first_name,
-        last_name: emp.last_name,
-        position: emp.position,
-        department: emp.department,
-        role: emp.role,
-        email: emp.email,
-        status: period?.status || "Pending",
-        pr_period_id: period?.pr_period_id,
-        payroll: {
-          monthly_pay: basicpay.monthly_pay,
-          daily_pay: basicpay.daily_pay,
-          work_days: basicpay.work_days,
-          holiday_days: additions.holiday_days,
-          holiday_pay: additions.holiday_pay,
-          snwh_days: additions.snwh_days,
-          snwh_pay: additions.snwh_pay,
-          wellness_allowance: additions.wellness_alw,
-          communication_allowance: additions.comms_alw,
-          birthday_allowance: additions.birthday_alw,
-          commission: additions.commission,
-          allowance: additions.allowance,
-          bonuses: additions.bonus,
-          thirteenth_month_pay: additions.thirteenth_mp,
-          cash_advance: deductions.cash_advance,
-          sss: deductions.sss,
-          philhealth: deductions.phil_health,
-          pagibig: deductions.pag_ibig,
-          hmo: deductions.hmo,
-          others: deductions.others,
-          basicpay_total: period?.basicpay_total,
-          additions_total: period?.additions_total,
-          deductions_total: period?.deductions_total,
-          net_pay: period?.net_pay,
-        },
-        auditLog: [],
-      };
-    });
-
-    dispatch({ type: "SET_EMPLOYEES", payload: shaped });
-  } catch (err) {
-    setError(err.message);
-    console.error("Failed to load employees:", err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+          return {
+            id: emp.emp_id,
+            name: `${emp.first_name} ${emp.last_name}`,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            position: emp.position,
+            department: emp.department,
+            role: emp.role,
+            email: emp.email,
+            payroll_period1: period1,
+            status_period1: period1?.status || "Pending",
+            pr_period_id_period1: period1?.pr_period_id,
+            auditLog_period1: period1?.auditLog || [],
+            payroll_period2: period2,
+            status_period2: period2?.status || "Pending",
+            pr_period_id_period2: period2?.pr_period_id,
+            auditLog_period2: period2?.auditLog || [],
+            payroll: period1 || {},
+            status: period1?.status || "Pending",
+            auditLog: period1?.auditLog || [],
+          };
+        });
+        dispatch({ type: "SET_EMPLOYEES", payload: shaped });
+      } catch (err) {
+        setError(err.message);
+        console.error("Failed to load employees:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchEmployees();
   }, []);
 
-  const editPayroll = useCallback(async (id, updatedFields, performedBy) => {
-    dispatch({ type: "EDIT_PAYROLL", payload: { id, updatedFields, performedBy } });
+  const switchPeriod = useCallback((period) => {
+    dispatch({ type: "SWITCH_PERIOD", payload: period });
+  }, []);
+
+  const editPayroll = useCallback(async (id, updatedFields, performedBy, period = "period1") => {
+    dispatch({ type: "EDIT_PAYROLL", payload: { id, updatedFields, period } });
 
     const emp = state.employees.find((e) => e.id === id);
-    if (!emp?.pr_period_id) return;
+    const pr_period_id = emp?.[`pr_period_id_${period}`];
+    if (!pr_period_id) return;
 
-    // Split updatedFields into their respective tables
+    // Map frontend field names to DB column names
+    const basicpayMap = { daily_pay: "daily_pay", work_days: "work_days", monthly_pay: "monthly_pay" };
+    const additionsMap = {
+      holiday_pay: "holiday_pay", snwh_pay: "snwh_pay",
+      wellness_allowance: "wellness_alw", communication_allowance: "comms_alw",
+      birthday_allowance: "birthday_alw", commission: "commission",
+      allowance: "allowance", bonuses: "bonus", thirteenth_month_pay: "thirteenth_mp",
+    };
+    const deductionsMap = {
+      cash_advance: "cash_advance", sss: "sss", philhealth: "phil_health",
+      pagibig: "pag_ibig", hmo: "hmo", others: "others",
+    };
+
     const basicpayFields = {};
     const additionsFields = {};
     const deductionsFields = {};
 
-    const basicpayKeys = ["monthly_pay", "daily_pay", "work_days"];
-    const additionsKeys = [
-      "holiday_days", "holiday_pay", "snwh_days", "snwh_pay",
-      "wellness_alw", "comms_alw", "birthday_alw", "commission",
-      "allowance", "bonus", "thirteenth_mp",
-    ];
-    const deductionsKeys = [
-      "cash_advance", "sss", "phil_health", "pag_ibig", "hmo", "others",
-    ];
-
     Object.entries(updatedFields).forEach(([key, val]) => {
-      if (basicpayKeys.includes(key)) basicpayFields[key] = val;
-      else if (additionsKeys.includes(key)) additionsFields[key] = val;
-      else if (deductionsKeys.includes(key)) deductionsFields[key] = val;
+      if (basicpayMap[key]) basicpayFields[basicpayMap[key]] = val;
+      else if (additionsMap[key]) additionsFields[additionsMap[key]] = val;
+      else if (deductionsMap[key]) deductionsFields[deductionsMap[key]] = val;
     });
 
     const updates = [];
     if (Object.keys(basicpayFields).length > 0)
-      updates.push(supabase.from("payroll_basicpay").update(basicpayFields).eq("pr_period_id", emp.pr_period_id));
+      updates.push(supabase.from("payroll_basicpay").update(basicpayFields).eq("pr_period_id", pr_period_id));
     if (Object.keys(additionsFields).length > 0)
-      updates.push(supabase.from("payroll_additions").update(additionsFields).eq("pr_period_id", emp.pr_period_id));
+      updates.push(supabase.from("payroll_additions").update(additionsFields).eq("pr_period_id", pr_period_id));
     if (Object.keys(deductionsFields).length > 0)
-      updates.push(supabase.from("payroll_deductions").update(deductionsFields).eq("pr_period_id", emp.pr_period_id));
+      updates.push(supabase.from("payroll_deductions").update(deductionsFields).eq("pr_period_id", pr_period_id));
 
     const results = await Promise.all(updates);
     results.forEach(({ error }) => {
       if (error) console.error("Failed to update payroll:", error.message);
     });
+
+    const changes = {};
+    Object.entries(updatedFields).forEach(([key, val]) => {
+      const oldVal = emp[`payroll_${period}`]?.[key];
+      if (oldVal !== val) changes[key] = { from: oldVal, to: val };
+    });
+
+    await supabase.from("audit_log").insert({
+      employee_id: id,
+      pr_period_id,
+      action: "Payroll Edited",
+      performed_by: performedBy,
+      changes,
+    });
+
+    const logEntry = {
+      id: crypto.randomUUID(),
+      action: "Payroll Edited",
+      performedBy,
+      timestamp: new Date().toISOString(),
+      changes,
+    };
+    dispatch({ type: "ADD_AUDIT_LOG", payload: { id, period, logEntry } });
   }, [state.employees]);
 
-  const approvePayroll = useCallback(async (id, performedBy) => {
-    dispatch({ type: "APPROVE_PAYROLL", payload: { id, performedBy } });
+  const approvePayroll = useCallback(async (id, performedBy, period = "period1") => {
+    dispatch({ type: "APPROVE_PAYROLL", payload: { id, performedBy, period } });
 
     const emp = state.employees.find((e) => e.id === id);
-    if (!emp?.pr_period_id) return;
+    const pr_period_id = emp?.[`pr_period_id_${period}`];
+    if (!pr_period_id) return;
 
-    const approver = state.employees.find((e) => e.email === performedBy || e.id === performedBy);
     const { error } = await supabase
       .from("payroll_period")
-      .update({ status: "Approved", approved_by: approver?.id || null })
-      .eq("pr_period_id", emp.pr_period_id);
+      .update({ status: "Approved" })
+      .eq("pr_period_id", pr_period_id);
 
     if (error) console.error("Failed to approve payroll:", error.message);
+
+    await supabase.from("audit_log").insert({
+      employee_id: id,
+      pr_period_id,
+      action: "Approved",
+      performed_by: performedBy,
+    });
+
+    const logEntry = {
+      id: crypto.randomUUID(),
+      action: "Approved",
+      performedBy,
+      timestamp: new Date().toISOString(),
+      changes: {},
+    };
+    dispatch({ type: "ADD_AUDIT_LOG", payload: { id, period, logEntry } });
   }, [state.employees]);
 
-  const unapprovePayroll = useCallback(async (id, performedBy) => {
-    dispatch({ type: "UNAPPROVE_PAYROLL", payload: { id, performedBy } });
+  const unapprovePayroll = useCallback(async (id, performedBy, period = "period1") => {
+    dispatch({ type: "UNAPPROVE_PAYROLL", payload: { id, performedBy, period } });
 
     const emp = state.employees.find((e) => e.id === id);
-    if (!emp?.pr_period_id) return;
+    const pr_period_id = emp?.[`pr_period_id_${period}`];
+    if (!pr_period_id) return;
 
     const { error } = await supabase
       .from("payroll_period")
-      .update({ status: "Pending", approved_by: null })
-      .eq("pr_period_id", emp.pr_period_id);
+      .update({ status: "Pending" })
+      .eq("pr_period_id", pr_period_id);
 
     if (error) console.error("Failed to unapprove payroll:", error.message);
+
+    await supabase.from("audit_log").insert({
+      employee_id: id,
+      pr_period_id,
+      action: "Unapproved",
+      performed_by: performedBy,
+    });
+
+    const logEntry = {
+      id: crypto.randomUUID(),
+      action: "Unapproved",
+      performedBy,
+      timestamp: new Date().toISOString(),
+      changes: {},
+    };
+    dispatch({ type: "ADD_AUDIT_LOG", payload: { id, period, logEntry } });
   }, [state.employees]);
 
-  const sendPayroll = useCallback(async (performedBy) => {
-    dispatch({ type: "SEND_PAYROLL", payload: { performedBy } });
+  const sendPayroll = useCallback(async (performedBy, period = "period1") => {
+    dispatch({ type: "SEND_PAYROLL", payload: { performedBy, period } });
 
     const periodIds = state.employees
-      .map((e) => e.pr_period_id)
+      .map((e) => e[`pr_period_id_${period}`])
       .filter(Boolean);
 
     const { error } = await supabase
@@ -281,6 +416,26 @@ export function PayrollProvider({ children }) {
       .in("pr_period_id", periodIds);
 
     if (error) console.error("Failed to send payroll:", error.message);
+
+    const auditEntries = state.employees.map((e) => ({
+      employee_id: e.id,
+      pr_period_id: e[`pr_period_id_${period}`],
+      action: "Payroll Sent",
+      performed_by: performedBy,
+    })).filter((entry) => entry.pr_period_id);
+
+    await supabase.from("audit_log").insert(auditEntries);
+
+    state.employees.forEach((emp) => {
+      const logEntry = {
+        id: crypto.randomUUID(),
+        action: "Payroll Sent",
+        performedBy,
+        timestamp: new Date().toISOString(),
+        changes: {},
+      };
+      dispatch({ type: "ADD_AUDIT_LOG", payload: { id: emp.id, period, logEntry } });
+    });
   }, [state.employees]);
 
   return (
@@ -289,6 +444,7 @@ export function PayrollProvider({ children }) {
         ...state,
         loading,
         error,
+        switchPeriod,
         editPayroll,
         approvePayroll,
         unapprovePayroll,
