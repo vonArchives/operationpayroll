@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/images/logo.png";
-import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -120,16 +119,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Status Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-xs font-medium text-emerald-400">
-              Secure portal · All systems operational
-            </span>
-          </div>
         </div>
 
         {/* Welcome text */}
