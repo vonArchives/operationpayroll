@@ -47,15 +47,14 @@ export function MonthPicker({ value, onChange, disabledMonths }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors",
+          "flex w-full items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors bg-transparent",
           open
-            ? "border-indigo-400/50 ring-1 ring-indigo-400/20"
-            : "border-white/10 hover:border-white/20"
+            ? "border-primary/50 ring-1 ring-primary/20"
+            : "border-border hover:border-primary/30"
         )}
-        style={{ background: "rgba(255,255,255,0.05)" }}
       >
-        <CalendarDays className="h-4 w-4 text-white/40 shrink-0" />
-        <span className={value ? "text-white" : "text-white/40"}>
+        <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className={value ? "text-foreground" : "text-muted-foreground"}>
           {value
             ? new Date(`${value}-01`).toLocaleDateString("en-US", {
                 month: "long",
