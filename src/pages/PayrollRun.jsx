@@ -78,6 +78,21 @@ export default function PayrollRun() {
   const [newMonth, setNewMonth] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const eligibleMonths = useMemo(() => {
+    const now = new Date();
+    const existingKeys = new Set(availableMonths.map((m) => m.key));
+    const months = [];
+    for (let i = -12; i <= 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!existingKeys.has(key)) {
+        const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        months.push({ key, label });
+      }
+    }
+    return months;
+  }, [availableMonths]);
+
   // Period-specific dynamic keys
   const isMonthly = currentPeriod === "monthly";
   const statusKey = isMonthly ? null : `status_${currentPeriod}`;
@@ -294,12 +309,24 @@ export default function PayrollRun() {
               </p>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Month</label>
-                <input
-                  type="month"
-                  value={newMonth}
-                  onChange={(e) => setNewMonth(e.target.value)}
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                {eligibleMonths.length > 0 ? (
+                  <select
+                    value={newMonth}
+                    onChange={(e) => setNewMonth(e.target.value)}
+                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Choose a month...</option>
+                    {eligibleMonths.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-danger">
+                    All months in range already have payroll data.
+                  </p>
+                )}
               </div>
             </div>
             <DialogFooter>

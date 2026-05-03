@@ -41,45 +41,57 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
 
-  // Restore session on mount from cookie + localStorage
+  // Restore session on mount from cookie (JWT) or localStorage fallback
   useEffect(() => {
+    // Path 1: JWT cookie (new edge function)
     const token = getCookie(COOKIE_NAME);
-    if (!token) {
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-
-    const payload = decodeJwt(token);
-    if (!payload || !payload.exp) {
+    if (token) {
+      const payload = decodeJwt(token);
+      if (payload?.exp && payload.exp > Math.floor(Date.now() / 1000)) {
+        const savedUser = localStorage.getItem(STORAGE_KEY);
+        if (savedUser) {
+          try {
+            const parsed = JSON.parse(savedUser);
+            setUser(parsed);
+            setIsAuthenticated(true);
+            setSessionExpiresAt(payload.exp * 1000);
+            return;
+          } catch {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      }
+      // Invalid/expired JWT — clean up
       deleteCookie(COOKIE_NAME);
-      localStorage.removeItem(STORAGE_KEY);
-      return;
     }
 
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (payload.exp <= nowSec) {
-      deleteCookie(COOKIE_NAME);
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-
-    const savedUser = localStorage.getItem(STORAGE_KEY);
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setUser(parsed);
-        setIsAuthenticated(true);
-        setSessionExpiresAt(payload.exp * 1000);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
+    // Path 2: localStorage expiry fallback (old edge function, no JWT)
+    const storedExpiry = localStorage.getItem("jpmc_session_expiry");
+    if (storedExpiry && Number(storedExpiry) > Date.now()) {
+      const savedUser = localStorage.getItem(STORAGE_KEY);
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          setUser(parsed);
+          setIsAuthenticated(true);
+          setSessionExpiresAt(Number(storedExpiry));
+          return;
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
     }
+
+    // No valid session — clean up everything
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("jpmc_session_expiry");
   }, []);
 
   // Session timeout handler
   const handleTimeout = useCallback(() => {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("jpmc_session_expiry");
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);
@@ -114,15 +126,23 @@ export function AuthProvider({ children }) {
 
       const userData = data.user;
       const token = data.token;
-      const payload = decodeJwt(token);
-      const expiresAt = payload?.exp ? payload.exp * 1000 : Date.now() + SESSION_TIMEOUT_MS;
+      const expiresAt = Date.now() + SESSION_TIMEOUT_MS;
 
       setUser(userData);
       setIsAuthenticated(true);
       setSessionExpiresAt(expiresAt);
 
-      // Store token in cookie (30 min)
-      setCookie(COOKIE_NAME, token, Math.floor(SESSION_TIMEOUT_MS / 1000));
+      if (token) {
+        // New edge function with JWT: store token in cookie
+        const payload = decodeJwt(token);
+        const jwtExpiresAt = payload?.exp ? payload.exp * 1000 : expiresAt;
+        setSessionExpiresAt(jwtExpiresAt);
+        setCookie(COOKIE_NAME, token, Math.floor(SESSION_TIMEOUT_MS / 1000));
+      } else {
+        // Old edge function (no JWT): store expiry timestamp in localStorage
+        localStorage.setItem("jpmc_session_expiry", String(expiresAt));
+      }
+
       // Store user data in localStorage (non-sensitive, no token)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
 
@@ -136,6 +156,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("jpmc_session_expiry");
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);

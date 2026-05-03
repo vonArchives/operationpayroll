@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import logo from "@/images/logo.png";
+import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -45,83 +47,83 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-svh">
-      {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-slate-900 p-12 text-white relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-2xl font-bold">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-900 font-bold">
-              J
-            </div>
-            <span>JPMC Payroll</span>
-          </div>
-        </div>
-        <div className="relative z-10">
-          <h2 className="text-4xl font-bold leading-tight">Payroll, handled.</h2>
-          <p className="mt-4 text-lg text-slate-300">
-            Simplified payroll management for modern teams.
-          </p>
-        </div>
-        <div className="relative z-10 text-sm text-slate-400">
-          Admin and Manager accounts only
-        </div>
-        {/* Subtle gradient background element */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-primary to-slate-950 p-4">
+      {/* Animated background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-accent/10 blur-3xl animate-pulse" />
+        <div
+          className="absolute top-1/2 -left-20 h-80 w-80 rounded-full bg-primary/20 blur-3xl animate-pulse"
+          style={{ animationDelay: "1.5s" }}
+        />
+        <div
+          className="absolute -bottom-32 right-1/4 h-72 w-72 rounded-full bg-accent/10 blur-3xl animate-pulse"
+          style={{ animationDelay: "3s" }}
+        />
       </div>
 
-      {/* Right form panel */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-text-primary">Welcome back</h1>
-            <p className="mt-2 text-sm text-text-muted">
-              Admin and Manager accounts only
-            </p>
+      {/* Glass card */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl p-8">
+        {/* Logo + Brand */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <img
+            src={logo}
+            alt="JPMC Payroll"
+            className="h-12 w-auto object-contain"
+          />
+          <h1 className="text-2xl font-bold text-white">JPMC Payroll</h1>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-white/80">
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@company.com"
+              {...register("email")}
+              className={cn(
+                "bg-white/10 border-white/10 text-white placeholder:text-white/40 h-10",
+                errors.email && "border-red-400"
+              )}
+            />
+            {errors.email && (
+              <p className="text-sm text-red-400">{errors.email.message}</p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@company.com"
-                {...register("email")}
-                className={errors.email ? "border-danger" : ""}
-              />
-              {errors.email && (
-                <p className="text-sm text-danger">{errors.email.message}</p>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-white/80">
+              Password
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              {...register("password")}
+              className={cn(
+                "bg-white/10 border-white/10 text-white placeholder:text-white/40 h-10",
+                errors.password && "border-red-400"
               )}
-            </div>
+            />
+            {errors.password && (
+              <p className="text-sm text-red-400">{errors.password.message}</p>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                {...register("password")}
-                className={errors.password ? "border-danger" : ""}
-              />
-              {errors.password && (
-                <p className="text-sm text-danger">{errors.password.message}</p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
-          </form>
-        </div>
+          <Button type="submit" className="w-full h-10 mt-2" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Sign in"
+            )}
+          </Button>
+        </form>
       </div>
     </div>
   );
