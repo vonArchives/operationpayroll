@@ -99,16 +99,12 @@ export default function Login() {
         <div className="flex flex-col items-center mb-8">
           {/* Logo + Brand */}
           <div className="flex items-center gap-3 mb-4">
-            {/* JP Logo Mark */}
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-white font-bold text-lg"
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #6366f1)",
-                boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
-              }}
-            >
-              JP
-            </div>
+            {/* Company Logo */}
+            <img
+              src={logo}
+              alt="JPMC Payroll"
+              className="h-11 w-11 object-contain rounded-xl"
+            />
             <div className="flex flex-col">
               <h1
                 className="text-xl font-bold text-white leading-tight"
