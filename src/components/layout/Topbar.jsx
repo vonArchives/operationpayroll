@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { format } from "date-fns";
+import { getInitials } from "@/lib/utils";
 import { Settings } from "lucide-react";
 import {
   Tooltip,
@@ -21,14 +22,10 @@ export default function Topbar() {
   const { user } = useAuth();
   const { openSettings } = useSettings();
 
-  const title = pageTitles[pathname] || "PaySync";
+  const title = pageTitles[pathname] || "JPMC Payroll";
   const today = format(new Date(), "MMMM d, yyyy");
 
-  const initials = user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || "U";
+  const initials = getInitials(user?.name, "U");
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur px-6">

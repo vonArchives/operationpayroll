@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { computePayroll } from "@/lib/payrollUtils";
+import { computePayroll, formatCurrency } from "@/lib/payrollUtils";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -39,13 +39,6 @@ const schema = z.object({
   others: z.coerce.number().min(0),
 });
 
-function formatCurrency(value) {
-  return Number(value).toLocaleString("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  });
-}
-
 function ReadOnlyInput({ id, value }) {
   return (
     <Input
@@ -59,7 +52,7 @@ function ReadOnlyInput({ id, value }) {
 }
 
 export default function EditModal({ employee, open, onClose }) {
-  const { editPayroll, payrollSent_period1, payrollSent_period2, currentPeriod } = usePayroll();
+  const { editPayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
 
   const payrollKey = `payroll_${currentPeriod}`;
@@ -81,9 +74,9 @@ export default function EditModal({ employee, open, onClose }) {
 
   const live = useMemo(() => computePayroll(watched), [watched]);
 
-  const onSubmit = (data) => {
-    editPayroll(employee.id, data, perms.user?.name, currentPeriod);
-    onClose();
+  const onSubmit = async (data) => {
+    const success = await editPayroll(employee.id, data, perms.user?.name, currentPeriod);
+    if (success) onClose();
   };
 
   return (
@@ -262,7 +255,7 @@ export default function EditModal({ employee, open, onClose }) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!isValid || payrollSent}>
+            <Button type="submit" disabled={!isValid || payrollSent || mutationLoading}>
               {perms.editButtonText}
             </Button>
           </DialogFooter>

@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { usePayroll } from "@/hooks/usePayroll";
-import { computePayroll, getPayrollPeriodLabel } from "@/lib/payrollUtils";
+import { computePayroll } from "@/lib/payrollUtils";
+import { getInitials } from "@/lib/utils";
 import StatCards from "@/components/dashboard/StatCards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,12 +55,6 @@ export default function Dashboard() {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 10);
   }, [employees]);
-
-  const getInitials = (name) => {
-    if (!name) return "?";
-    const parts = name.split(" ");
-    return parts.map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  };
 
   if (loading) return <p className="p-6">Loading...</p>;
   if (error) return <p className="p-6 text-red-500">Error: {error}</p>;

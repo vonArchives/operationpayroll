@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { computePayroll } from "@/lib/payrollUtils";
+import { computePayroll, formatCurrency } from "@/lib/payrollUtils";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -26,13 +26,6 @@ const DEDUCTIONS_KEYS = [
   { key: "hmo", label: "HMO" },
   { key: "others", label: "Others" },
 ];
-
-function formatCurrency(value) {
-  return Number(value).toLocaleString("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  });
-}
 
 export default function PayslipCard({ employee, period, payrollData }) {
   const computed = useMemo(

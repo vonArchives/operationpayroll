@@ -62,7 +62,9 @@ export default function PayrollRun() {
     sendPayroll,
     loading,
     error,
+    mutationLoading,
     createPayrollMonth,
+    refreshPayrollData,
   } = usePayroll();
   
   const { user } = useAuth();
@@ -114,11 +116,9 @@ export default function PayrollRun() {
   const allApproved = approvedCount === totalCount && totalCount > 0;
   const canSend = !isMonthly && allApproved && !isPayrollSent;
 
-  const handleSend = () => {
-    // Passing both user and period just in case the Supabase hook requires it
-    sendPayroll(user.name, currentPeriod);
-    toast.success(`${PERIODS.find((p) => p.key === currentPeriod)?.label} payroll sent successfully!`);
-    setSendDialogOpen(false);
+  const handleSend = async () => {
+    const success = await sendPayroll(user.name, currentPeriod);
+    if (success) setSendDialogOpen(false);
   };
 
   const handleCreatePayroll = async () => {
@@ -130,8 +130,8 @@ export default function PayrollRun() {
       toast.success(`Payroll for ${new Date(newMonth + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })} created successfully!`);
       setCreateDialogOpen(false);
       setNewMonth("");
-      // Reload the page to fetch new data
-      window.location.reload();
+      // Refresh payroll data to load new month
+      refreshPayrollData();
     } else {
       toast.error(result.error || "Failed to create payroll.");
     }
@@ -139,6 +139,8 @@ export default function PayrollRun() {
 
   const sendDisabledReason = isMonthly
     ? "Send is only available for individual periods"
+    : mutationLoading
+    ? "Processing..."
     : isPayrollSent
     ? "Payroll has already been sent for this period"
     : !allApproved
@@ -236,7 +238,7 @@ export default function PayrollRun() {
                 <span>
                   <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
                     <AlertDialogTrigger asChild>
-                      <Button disabled={!canSend} className="gap-2">
+                      <Button disabled={!canSend || mutationLoading} className="gap-2">
                         <Send className="h-4 w-4" />
                         Send Payroll
                       </Button>
@@ -250,8 +252,8 @@ export default function PayrollRun() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSend}>
-                          Confirm Send
+                        <AlertDialogAction onClick={handleSend} disabled={mutationLoading}>
+                          {mutationLoading ? "Sending..." : "Confirm Send"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

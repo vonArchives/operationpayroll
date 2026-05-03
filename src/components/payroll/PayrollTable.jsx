@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { computePayroll, computeMonthlySummary } from "@/lib/payrollUtils";
+import { computePayroll, computeMonthlySummary, formatCurrency } from "@/lib/payrollUtils";
 import {
   Table,
   TableBody,
@@ -27,14 +27,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// FIXED: Added '|| 0' so that Number(undefined) doesn't turn into NaN
-function formatCurrency(value) {
-  return Number(value || 0).toLocaleString("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  });
-}
-
 export default function PayrollTable({
   employees,
   showBasic,
@@ -43,7 +35,7 @@ export default function PayrollTable({
   totals,
   isMonthly,
 }) {
-  const { approvePayroll, unapprovePayroll, payrollSent_period1, payrollSent_period2, currentPeriod } = usePayroll();
+  const { approvePayroll, unapprovePayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
   const [editEmployee, setEditEmployee] = useState(null);
   const [auditEmployee, setAuditEmployee] = useState(null);
@@ -236,15 +228,17 @@ export default function PayrollTable({
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8 border-border bg-card hover:bg-muted"
-                                disabled={payrollSent}
+                                disabled={payrollSent || mutationLoading}
                                 onClick={() => setEditEmployee(emp)}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </span>
                           </TooltipTrigger>
-                          {payrollSent && (
-                            <TooltipContent>Edit disabled after payroll sent</TooltipContent>
+                          {(payrollSent || mutationLoading) && (
+                            <TooltipContent>
+                              {payrollSent ? "Edit disabled after payroll sent" : "Saving..."}
+                            </TooltipContent>
                           )}
                         </Tooltip>
                       </TooltipProvider>
@@ -259,15 +253,17 @@ export default function PayrollTable({
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
-                                    disabled={payrollSent}
-                                    onClick={() => approvePayroll(emp.id, perms.user.name, currentPeriod)}
+                                    disabled={payrollSent || mutationLoading}
+                                    onClick={() => approvePayroll(emp.id, perms.user.name, perms.user?.emp_id, currentPeriod)}
                                   >
                                     <CheckCircle className="h-4 w-4" />
                                   </Button>
                                 </span>
                               </TooltipTrigger>
-                              {payrollSent && (
-                                <TooltipContent>Approve disabled after payroll sent</TooltipContent>
+                              {(payrollSent || mutationLoading) && (
+                                <TooltipContent>
+                                  {payrollSent ? "Approve disabled after payroll sent" : "Saving..."}
+                                </TooltipContent>
                               )}
                             </Tooltip>
                           </TooltipProvider>
@@ -280,15 +276,17 @@ export default function PayrollTable({
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
-                                    disabled={payrollSent}
+                                    disabled={payrollSent || mutationLoading}
                                     onClick={() => unapprovePayroll(emp.id, perms.user.name, currentPeriod)}
                                   >
                                     <XCircle className="h-4 w-4" />
                                   </Button>
                                 </span>
                               </TooltipTrigger>
-                              {payrollSent && (
-                                <TooltipContent>Unapprove disabled after payroll sent</TooltipContent>
+                              {(payrollSent || mutationLoading) && (
+                                <TooltipContent>
+                                  {payrollSent ? "Unapprove disabled after payroll sent" : "Saving..."}
+                                </TooltipContent>
                               )}
                             </Tooltip>
                           </TooltipProvider>

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import logo from "@/images/logo.png";
 import {
   LayoutDashboard,
@@ -26,11 +26,7 @@ export default function Sidebar({ collapsed, onToggle }) {
     localStorage.setItem("sidebar_collapsed", JSON.stringify(collapsed));
   }, [collapsed]);
 
-  const initials = user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || "U";
+  const initials = getInitials(user?.name, "U");
 
   return (
     <aside

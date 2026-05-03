@@ -30,6 +30,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import PayslipCard from "@/components/payroll/PayslipCard";
+import { getInitials } from "@/lib/utils";
 import { Search, ArrowUpDown, Eye, Users, FileText } from "lucide-react";
 
 const ROLE_BADGES = {
@@ -37,12 +38,6 @@ const ROLE_BADGES = {
   moderator: { label: "Moderator", variant: "secondary" },
   employee: { label: "Employee", variant: "outline" },
 };
-
-function getInitials(name) {
-  if (!name) return "?";
-  const parts = name.split(" ");
-  return parts.map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-}
 
 function TableSkeleton() {
   return (

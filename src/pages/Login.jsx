@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import logo from "@/images/logo.png";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -52,9 +51,9 @@ export default function Login() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-2xl font-bold">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-900 font-bold">
-              P
+              J
             </div>
-            <span>PaySync</span>
+            <span>JPMC Payroll</span>
           </div>
         </div>
         <div className="relative z-10">

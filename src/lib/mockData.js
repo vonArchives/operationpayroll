@@ -83,8 +83,7 @@ const baseEmployees = [
     position: "HR Director",
     department: "Human Resources",
     role: "admin",
-    email: "juan.delacruz@paysync.ph",
-    password: "admin123",
+    email: "juan.delacruz@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {
@@ -113,8 +112,7 @@ const baseEmployees = [
     position: "Finance Manager",
     department: "Finance",
     role: "admin",
-    email: "maria.santos@paysync.ph",
-    password: "admin123",
+    email: "maria.santos@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {
@@ -143,8 +141,7 @@ const baseEmployees = [
     position: "Engineering Lead",
     department: "Engineering",
     role: "moderator",
-    email: "pedro.reyes@paysync.ph",
-    password: "moderator123",
+    email: "pedro.reyes@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {
@@ -173,8 +170,7 @@ const baseEmployees = [
     position: "Operations Manager",
     department: "Operations",
     role: "moderator",
-    email: "ana.gonzales@paysync.ph",
-    password: "moderator123",
+    email: "ana.gonzales@jpmc.com",
     status_period1: "Pending",
     status_period2: "Pending",
     payroll: {
@@ -203,8 +199,7 @@ const baseEmployees = [
     position: "Software Developer",
     department: "Engineering",
     role: "employee",
-    email: "ricardo.lim@paysync.ph",
-    password: "employee123",
+    email: "ricardo.lim@jpmc.com",
     status_period1: "Pending",
     status_period2: "Pending",
     payroll: {
@@ -233,8 +228,7 @@ const baseEmployees = [
     position: "UI/UX Designer",
     department: "Engineering",
     role: "employee",
-    email: "carmen.tan@paysync.ph",
-    password: "employee123",
+    email: "carmen.tan@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {
@@ -263,8 +257,7 @@ const baseEmployees = [
     position: "QA Engineer",
     department: "Engineering",
     role: "employee",
-    email: "roberto.sy@paysync.ph",
-    password: "employee123",
+    email: "roberto.sy@jpmc.com",
     status_period1: "Pending",
     status_period2: "Pending",
     payroll: {
@@ -293,8 +286,7 @@ const baseEmployees = [
     position: "HR Specialist",
     department: "Human Resources",
     role: "employee",
-    email: "lourdes.cruz@paysync.ph",
-    password: "employee123",
+    email: "lourdes.cruz@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {
@@ -323,8 +315,7 @@ const baseEmployees = [
     position: "Accountant",
     department: "Finance",
     role: "employee",
-    email: "eduardo.reyes@paysync.ph",
-    password: "employee123",
+    email: "eduardo.reyes@jpmc.com",
     status_period1: "Pending",
     status_period2: "Pending",
     payroll: {
@@ -353,8 +344,7 @@ const baseEmployees = [
     position: "Marketing Specialist",
     department: "Marketing",
     role: "employee",
-    email: "josefina.bautista@paysync.ph",
-    password: "employee123",
+    email: "josefina.bautista@jpmc.com",
     status_period1: "Approved",
     status_period2: "Approved",
     payroll: {

@@ -1,4 +1,16 @@
 /**
+ * Format a number as PHP currency string.
+ * @param {number|string} value
+ * @returns {string}
+ */
+export function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  });
+}
+
+/**
  * Pure function to compute payroll totals from raw field inputs.
  * All inputs default to 0 if NaN, null, undefined, or empty string.
  *
