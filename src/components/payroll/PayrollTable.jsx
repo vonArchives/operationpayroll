@@ -64,6 +64,15 @@ export default function PayrollTable({
     };
   };
 
+  const activeEmployees = employees.filter((emp) => {
+    if (isMonthly) {
+      // In Monthly view, show them if they have data in either period
+      return emp.payroll_period1 || emp.payroll_period2;
+    }
+    // In Period view, strictly require data for this specific period
+    return emp[payrollKey] !== undefined && emp[payrollKey] !== null;
+  });
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -159,7 +168,7 @@ export default function PayrollTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.map((emp) => {
+          {activeEmployees.map((emp) => {
             const data = getEmployeeData(emp);
             const payroll = isMonthly ? data : data.payroll || {};
             const computed = isMonthly ? data : data.computed || {};
@@ -254,7 +263,7 @@ export default function PayrollTable({
                                     size="icon"
                                     className="h-8 w-8 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
                                     disabled={payrollSent || mutationLoading}
-                                    onClick={() => approvePayroll(emp.id, perms.user.name, perms.user?.emp_id, currentPeriod)}
+                                    onClick={() => approvePayroll(emp.id, perms.user?.name, perms.user?.emp_id, currentPeriod)}
                                   >
                                     <CheckCircle className="h-4 w-4" />
                                   </Button>
@@ -277,7 +286,7 @@ export default function PayrollTable({
                                     size="icon"
                                     className="h-8 w-8 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
                                     disabled={payrollSent || mutationLoading}
-                                    onClick={() => unapprovePayroll(emp.id, perms.user.name, currentPeriod)}
+                                    onClick={() => unapprovePayroll(emp.id, perms.user?.name, currentPeriod)}
                                   >
                                     <XCircle className="h-4 w-4" />
                                   </Button>

@@ -50,27 +50,37 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           else if (deductionsMap[key]) deductionsFields[deductionsMap[key]] = val;
         });
 
+        // 1. Sanitize inputs: Convert empty strings to 0 so PostgreSQL numeric columns don't crash
+        const sanitizeForDB = (fields) => {
+          const sanitized = {};
+          Object.entries(fields).forEach(([k, v]) => {
+            sanitized[k] = v === "" || Number.isNaN(Number(v)) ? 0 : Number(v);
+          });
+          return sanitized;
+        };
+
+        const safeBasic = sanitizeForDB(basicpayFields);
+        const safeAdds = sanitizeForDB(additionsFields);
+        const safeDeducts = sanitizeForDB(deductionsFields);
+
+        // 2. Use .upsert() so it creates missing child rows for older data, while updating existing ones
         const updates = [];
-        if (Object.keys(basicpayFields).length > 0)
+        if (Object.keys(safeBasic).length > 0)
           updates.push(
-            supabase.from("payroll_basicpay").upsert(
-              { ...basicpayFields, pr_period_id },
-              { onConflict: "pr_period_id" }
-            )
+            supabase.from("payroll_basicpay")
+              .upsert({ ...safeBasic, pr_period_id }, { onConflict: "pr_period_id" })
           );
-        if (Object.keys(additionsFields).length > 0)
+
+        if (Object.keys(safeAdds).length > 0)
           updates.push(
-            supabase.from("payroll_additions").upsert(
-              { ...additionsFields, pr_period_id },
-              { onConflict: "pr_period_id" }
-            )
+            supabase.from("payroll_additions")
+              .upsert({ ...safeAdds, pr_period_id }, { onConflict: "pr_period_id" })
           );
-        if (Object.keys(deductionsFields).length > 0)
+
+        if (Object.keys(safeDeducts).length > 0)
           updates.push(
-            supabase.from("payroll_deductions").upsert(
-              { ...deductionsFields, pr_period_id },
-              { onConflict: "pr_period_id" }
-            )
+            supabase.from("payroll_deductions")
+              .upsert({ ...safeDeducts, pr_period_id }, { onConflict: "pr_period_id" })
           );
 
         const changes = {};
@@ -382,11 +392,82 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     return { success: true };
   }, []);
 
+  const generatePayrollForNewEmployee = useCallback(async (empId) => {
+    // 1. Figure out the current month boundaries
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+
+    const period1From = `${monthStr}-01`;
+    const period1To = `${monthStr}-15`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const period2From = `${monthStr}-16`;
+    const period2To = `${monthStr}-${lastDay}`;
+
+    // 2. SMART CHECK: Has the admin even generated this month's payroll yet?
+    // We check if ANY record exists for the 1st of this month.
+    const { data: existingGlobal } = await supabase
+      .from("payroll_period")
+      .select("pr_period_id")
+      .eq("date_from", period1From)
+      .limit(1);
+
+    // If no one has payroll for this month, we do nothing. 
+    // The new employee will be included automatically when the admin eventually clicks "New Payroll Month".
+    if (!existingGlobal || existingGlobal.length === 0) {
+      return { success: true, skipped: true };
+    }
+
+    // 3. Create Period 1 and Period 2 for the new employee
+    const periods = [
+      { emp_id: empId, date_from: period1From, date_to: period1To, status: "Pending" },
+      { emp_id: empId, date_from: period2From, date_to: period2To, status: "Pending" }
+    ];
+
+    const { data: insertedPeriods, error: periodError } = await supabase
+      .from("payroll_period")
+      .insert(periods)
+      .select("pr_period_id");
+
+    if (periodError) return { success: false, error: periodError.message };
+
+    // 4. Generate the 0-value child rows using the new pr_period_ids
+    const basicpayRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
+    }));
+
+    const additionsRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0, 
+      snwh_pay: 0, wellness_alw: 0, comms_alw: 0, birthday_alw: 0, commission: 0, 
+      allowance: 0, bonus: 0, thirteenth_mp: 0,
+    }));
+
+    const deductionsRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id, cash_advance: 0, sss: 0, phil_health: 0, 
+      pag_ibig: 0, hmo: 0, others: 0,
+    }));
+
+    // 5. Fire all database inserts at the same time
+    const [bRes, aRes, dRes] = await Promise.all([
+      supabase.from("payroll_basicpay").insert(basicpayRows),
+      supabase.from("payroll_additions").insert(additionsRows),
+      supabase.from("payroll_deductions").insert(deductionsRows),
+    ]);
+
+    if (bRes.error) return { success: false, error: bRes.error.message };
+    if (aRes.error) return { success: false, error: aRes.error.message };
+    if (dRes.error) return { success: false, error: dRes.error.message };
+
+    return { success: true, skipped: false };
+  }, []);
+
   return {
     editPayroll,
     approvePayroll,
     unapprovePayroll,
     sendPayroll,
     createPayrollMonth,
+    generatePayrollForNewEmployee,
   };
 }

@@ -77,8 +77,8 @@ export function shapeEmployees(data, selectedMonth) {
       })
       .sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
 
-    const period1 = shapePeriod(monthPeriods[0]);
-    const period2 = shapePeriod(monthPeriods[1]);
+    const period1 = shapePeriod(monthPeriods.find(p => Number(p.date_from.split('-')[2]) <= 15));
+    const period2 = shapePeriod(monthPeriods.find(p => Number(p.date_from.split('-')[2]) > 15));
 
     return {
       id: emp.emp_id,

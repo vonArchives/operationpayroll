@@ -20,8 +20,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const schema = z.object({
-  daily_pay: z.coerce.number().min(0.01, "Must be greater than 0"),
-  work_days: z.coerce.number().int().min(1).max(31),
+  daily_pay: z.coerce.number().min(0, "Cannot be negative"),
+  work_days: z.coerce.number().int().min(0, "Cannot be negative").max(31, "Max 31 days"),
   holiday_pay: z.coerce.number().min(0),
   snwh_pay: z.coerce.number().min(0),
   wellness_allowance: z.coerce.number().min(0),

@@ -17,6 +17,9 @@ export function useSessionTimeout({ onTimeout, timeoutMs = 30 * 60 * 1000 }) {
   const lastActivityRef = useRef(0);
   const isWarningRef = useRef(false);
   const toastIdRef = useRef(null);
+  
+  // NEW: Ref to track the last time we updated the activity
+  const throttleRef = useRef(0);
 
   const resetActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -34,7 +37,13 @@ export function useSessionTimeout({ onTimeout, timeoutMs = 30 * 60 * 1000 }) {
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
 
     const handleActivity = () => {
-      resetActivity();
+      const now = Date.now();
+      // NEW: Throttle logic. Only process activity at most once every 1000ms.
+      // This stops mousemove and scroll from crushing the browser's CPU.
+      if (now - throttleRef.current > 1000) {
+        resetActivity();
+        throttleRef.current = now;
+      }
     };
 
     events.forEach((e) => window.addEventListener(e, handleActivity));

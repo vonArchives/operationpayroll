@@ -31,7 +31,9 @@ import {
 } from "@/components/ui/pagination";
 import PayslipCard from "@/components/payroll/PayslipCard";
 import { getInitials } from "@/lib/utils";
-import { Search, ArrowUpDown, Eye, Users, FileText } from "lucide-react";
+import { Search, ArrowUpDown, Eye, Users, FileText, Plus} from "lucide-react";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 
 const ROLE_BADGES = {
   admin: { label: "Admin", variant: "default" },
@@ -58,11 +60,19 @@ function TableSkeleton() {
 
 export default function Employees() {
   const { employees, payrollPeriod, loading, error } = usePayroll();
+  const { isAdmin } = useRolePermissions();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const payrollKey = `payroll_${payrollPeriod}`;
+
+  const activeEmployeesForPeriod = employees.filter((employee) => {
+    return employee[payrollKey] !== undefined && employee[payrollKey] !== null;
+  });
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -105,22 +115,36 @@ export default function Employees() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* Left Side: Title */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
           <p className="text-muted-foreground">
             Manage and view employee details and payslips.
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search by name or department..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        
+        {/* Right Side: Actions & Search */}
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          {isAdmin && (
+            <Button 
+              onClick={() => setIsAddModalOpen(true)} 
+              className="w-full sm:w-auto gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by name or department..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -258,6 +282,14 @@ export default function Employees() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Employee Modal */}
+      {isAdmin && (
+        <AddEmployeeModal 
+          open={isAddModalOpen} 
+          onClose={() => setIsAddModalOpen(false)} 
+        />
+      )}
     </div>
   );
 }

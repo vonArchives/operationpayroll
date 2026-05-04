@@ -37,7 +37,7 @@ function payrollReducer(state, action) {
     case "SWITCH_MONTH": {
       const newMonth = action.payload;
       const [year, month] = newMonth.split("-").map(Number);
-      const monthDate = new Date(year, month - 1, now.getDate());
+      const monthDate = new Date(year, month - 1, 1);
       const isCurrentMonth =
         year === now.getFullYear() && month === now.getMonth() + 1;
       const autoPeriod = isCurrentMonth
@@ -223,18 +223,28 @@ export function PayrollProvider({ children }) {
         setAllPeriodData(data);
         dispatch({ type: "SET_AVAILABLE_MONTHS", payload: availableMonths });
 
+        let activeMonthKey = state.selectedMonth;
+        const monthExistsInDb = availableMonths.some((m) => m.key === activeMonthKey);
+
+        // If it doesn't exist (and we have data), fallback to the most recent available month
+        if (!monthExistsInDb && availableMonths.length > 0) {
+          activeMonthKey = availableMonths[0].key;
+          dispatch({ type: "SWITCH_MONTH", payload: activeMonthKey });
+        }
+
         // Check if payroll was already sent for current month's periods
-        const [selYear, selMonth] = state.selectedMonth.split("-").map(Number);
+        const [selYear, selMonth] = activeMonthKey.split("-").map(Number);
         const monthPeriods = data.filter((p) => {
-          const d = new Date(p.date_from);
-          return d.getFullYear() === selYear && d.getMonth() + 1 === selMonth;
+          if (!p.date_from) return false;
+          const [pYear, pMonth] = p.date_from.split("-").map(Number);
+          return pYear === selYear && pMonth === selMonth;
         });
 
         const period1Periods = monthPeriods.filter(
-          (p) => new Date(p.date_from).getDate() <= 15
+          (p) => Number(p.date_from.split("-")[2]) <= 15
         );
         const period2Periods = monthPeriods.filter(
-          (p) => new Date(p.date_from).getDate() >= 16
+          (p) => Number(p.date_from.split("-")[2]) >= 16
         );
 
         const sent1 =
@@ -266,12 +276,47 @@ export function PayrollProvider({ children }) {
   }, []);
 
   const switchMonth = useCallback((month) => {
+    // 1. Update the active month and default period in state
     dispatch({ type: "SWITCH_MONTH", payload: month });
+
+    // 2. Reshape and set the employees for the newly selected month
     const shaped = shapeEmployees(allPeriodData, month);
     dispatch({ type: "SET_EMPLOYEES", payload: shaped });
+
+    // 3. BUG FIX: Recalculate if payroll was already sent for the new month
+    const [selYear, selMonth] = month.split("-").map(Number);
+
+    // Using string splitting to avoid the timezone shift bug
+    const monthPeriods = allPeriodData.filter((p) => {
+      if (!p.date_from) return false;
+      const [pYear, pMonth] = p.date_from.split("-").map(Number);
+      return pYear === selYear && pMonth === selMonth;
+    });
+
+    const period1Periods = monthPeriods.filter((p) => {
+      const pDay = Number(p.date_from.split("-")[2]);
+      return pDay <= 15;
+    });
+    
+    const period2Periods = monthPeriods.filter((p) => {
+      const pDay = Number(p.date_from.split("-")[2]);
+      return pDay > 15;
+    });
+
+    const sent1 =
+      period1Periods.length > 0 &&
+      period1Periods.every((p) => p.status?.toLowerCase() === "sent");
+      
+    const sent2 =
+      period2Periods.length > 0 &&
+      period2Periods.every((p) => p.status?.toLowerCase() === "sent");
+
+    // 4. Update the Sent status in the global state
+    dispatch({ type: "SET_PAYROLL_SENT", payload: { period1: sent1, period2: sent2 } });
+    
   }, [allPeriodData]);
 
-  const { editPayroll, approvePayroll, unapprovePayroll, sendPayroll, createPayrollMonth } =
+  const { editPayroll, approvePayroll, unapprovePayroll, sendPayroll, createPayrollMonth, generatePayrollForNewEmployee } =
     usePayrollMutations(dispatch, state.employees, setMutationLoading);
 
   const payrollSent =
@@ -297,6 +342,7 @@ export function PayrollProvider({ children }) {
           sendPayroll,
           createPayrollMonth,
           refreshPayrollData,
+          generatePayrollForNewEmployee,
         }}
       >
       {children}
