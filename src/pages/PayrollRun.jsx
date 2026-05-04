@@ -40,7 +40,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Send, X, Plus } from "lucide-react";
+import { Search, Send, X, Plus, TriangleAlert } from "lucide-react";
 
 const PERIODS = [
   { key: "period1", label: "Period 1", sub: "Mid-Month" },
@@ -246,9 +246,31 @@ export default function PayrollRun() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Send Payroll?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Send {PERIODS.find((p) => p.key === currentPeriod)?.label} payroll to all {totalCount} employees? This cannot be undone.
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                            <TriangleAlert className="h-5 w-5 text-amber-500" />
+                          </div>
+                          <AlertDialogTitle>Send Payroll?</AlertDialogTitle>
+                        </div>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-4">
+                            <p className="text-amber-600 dark:text-amber-400 font-semibold text-sm">
+                              This action is permanent and cannot be undone.
+                            </p>
+                            <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+                              <p>
+                                <strong>Period:</strong>{" "}
+                                {PERIODS.find((p) => p.key === currentPeriod)?.label}
+                              </p>
+                              <p>
+                                <strong>Employees:</strong> {totalCount} total ({approvedCount} approved)
+                              </p>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Once sent, payroll data will be locked. No further edits,
+                              approvals, or status changes are possible for this period.
+                            </p>
+                          </div>
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
