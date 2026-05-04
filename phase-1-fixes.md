@@ -82,7 +82,7 @@ export function SettingsProvider({ children }) {
     [user]  // Remove broken dependency
   );
 ```
-
+### Sample Text
 ### What Changed
 
 | Change | Why |
