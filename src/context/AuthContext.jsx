@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabaseClient";
 
 const AuthContext = createContext(null);
 
@@ -55,6 +56,11 @@ export function AuthProvider({ children }) {
             setUser(parsed);
             setIsAuthenticated(true);
             setSessionExpiresAt(payload.exp * 1000);
+
+            // Tell Supabase to use this token for all database requests
+            supabase.rest.headers.Authorization = `Bearer ${token}`;
+            supabase.realtime.setAuth(token);
+
             return;
           } catch {
             localStorage.removeItem(STORAGE_KEY);
@@ -92,6 +98,7 @@ export function AuthProvider({ children }) {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("jpmc_session_expiry");
+    delete supabase.rest.headers.Authorization;
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);
@@ -138,6 +145,8 @@ export function AuthProvider({ children }) {
         const jwtExpiresAt = payload?.exp ? payload.exp * 1000 : expiresAt;
         setSessionExpiresAt(jwtExpiresAt);
         setCookie(COOKIE_NAME, token, Math.floor(SESSION_TIMEOUT_MS / 1000));
+        supabase.rest.headers.Authorization = `Bearer ${token}`;
+        supabase.realtime.setAuth(token);
       } else {
         // Old edge function (no JWT): store expiry timestamp in localStorage
         localStorage.setItem("jpmc_session_expiry", String(expiresAt));
@@ -157,6 +166,7 @@ export function AuthProvider({ children }) {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("jpmc_session_expiry");
+    delete supabase.rest.headers.Authorization;
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);
