@@ -24,8 +24,7 @@ const employeeSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(["admin", "moderator", "employee"]),
   position: z.string().min(1, "Position is required"),
-  department: z.string().min(1, "Department is required"),
-});
+  });
 
 export default function AddEmployeeModal({ open, onClose }) {
   const { generatePayrollForNewEmployee, refreshPayrollData } = usePayroll();
@@ -56,7 +55,6 @@ export default function AddEmployeeModal({ open, onClose }) {
           email: data.email,
           role: data.role,
           position: data.position,
-          department: data.department,
           status: "Active", // Assuming new hires are active!
         })
         .select("emp_id")
@@ -110,18 +108,11 @@ export default function AddEmployeeModal({ open, onClose }) {
             {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Input id="department" {...register("department")} />
-              {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
-            </div>
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label htmlFor="position">Position</Label>
               <Input id="position" {...register("position")} />
               {errors.position && <p className="text-xs text-red-500">{errors.position.message}</p>}
             </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="role">System Role</Label>

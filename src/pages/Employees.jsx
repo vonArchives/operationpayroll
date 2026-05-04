@@ -78,11 +78,10 @@ export default function Employees() {
     const term = search.trim().toLowerCase();
     let data = [...employees];
     if (term) {
-      data = data.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(term) ||
-          emp.department.toLowerCase().includes(term)
-      );
+data = data.filter(
+          (emp) =>
+            emp.name.toLowerCase().includes(term)
+        );
     }
     data.sort((a, b) => {
       const cmp = a.name.localeCompare(b.name);
@@ -139,7 +138,7 @@ export default function Employees() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search by name or department..."
+              placeholder="Search by name..."
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -181,9 +180,8 @@ export default function Employees() {
                           <ArrowUpDown className="h-3.5 w-3.5" />
                         </button>
                       </TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Role</TableHead>
+<TableHead>Position</TableHead>
+                       <TableHead>Role</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -200,9 +198,8 @@ export default function Employees() {
                         <TableCell className="font-medium">
                           {emp.name}
                         </TableCell>
-                        <TableCell>{emp.position}</TableCell>
-                        <TableCell>{emp.department}</TableCell>
-                        <TableCell>{roleBadge(emp.role)}</TableCell>
+<TableCell>{emp.position}</TableCell>
+                         <TableCell>{roleBadge(emp.role)}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"

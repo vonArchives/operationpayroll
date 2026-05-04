@@ -96,7 +96,7 @@ export default function PayslipCard({ employee, period, payrollData }) {
   </div>
   <div class="employee-info">
     <p class="name">${employee.name}</p>
-    <p class="detail">${employee.position} — ${employee.department}</p>
+    <p class="detail">${employee.position}</p>
   </div>
   <div class="section">
     <p class="section-title">Basic Pay</p>
@@ -176,8 +176,8 @@ export default function PayslipCard({ employee, period, payrollData }) {
       <div className="mt-4 text-sm">
         <p className="font-semibold text-text-primary">{employee.name}</p>
         <p className="text-text-muted">
-          {employee.position} — {employee.department}
-        </p>
+          {employee.position}
+         </p>
       </div>
 
       <Separator className="my-4" />
