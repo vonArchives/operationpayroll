@@ -86,7 +86,6 @@ export function shapeEmployees(data, selectedMonth) {
       first_name: emp.first_name,
       last_name: emp.last_name,
       position: emp.position,
-      department: emp.department,
       role: emp.role,
       email: emp.email,
       payroll_period1: period1,

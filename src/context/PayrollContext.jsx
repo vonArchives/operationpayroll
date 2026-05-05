@@ -196,7 +196,6 @@ export function PayrollProvider({ children }) {
               first_name,
               last_name,
               position,
-              department,
               role,
               email
             )

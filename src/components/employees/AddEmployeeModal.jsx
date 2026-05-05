@@ -24,7 +24,7 @@ const employeeSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(["admin", "moderator", "employee"]),
   position: z.string().min(1, "Position is required"),
-  });
+});
 
 export default function AddEmployeeModal({ open, onClose }) {
   const { generatePayrollForNewEmployee, refreshPayrollData } = usePayroll();
@@ -108,11 +108,13 @@ export default function AddEmployeeModal({ open, onClose }) {
             {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="position">Position</Label>
               <Input id="position" {...register("position")} />
               {errors.position && <p className="text-xs text-red-500">{errors.position.message}</p>}
             </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="role">System Role</Label>
