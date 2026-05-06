@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,12 +22,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const schema = z.object({
   daily_pay: z.coerce.number().min(0, "Cannot be negative"),
   work_days: z.coerce.number().int().min(0, "Cannot be negative").max(31, "Max 31 days"),
+  holiday_days: z.coerce.number().min(0),
   holiday_pay: z.coerce.number().min(0),
+  snwh_days: z.coerce.number().min(0),
   snwh_pay: z.coerce.number().min(0),
   wellness_allowance: z.coerce.number().min(0),
   communication_allowance: z.coerce.number().min(0),
   birthday_allowance: z.coerce.number().min(0),
   commission: z.coerce.number().min(0),
+  commission_remarks: z.string().optional(),
+  holiday_remarks: z.string().optional(),
+  snwh_remarks: z.string().optional(),
   allowance: z.coerce.number().min(0),
   bonuses: z.coerce.number().min(0),
   thirteenth_month_pay: z.coerce.number().min(0),
@@ -63,6 +68,7 @@ export default function EditModal({ employee, open, onClose }) {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(schema),
@@ -71,6 +77,29 @@ export default function EditModal({ employee, open, onClose }) {
   });
 
   const watched = useWatch({ control });
+
+  // Auto-compute holiday_pay and snwh_pay when days or daily_pay changes
+  const hasComputedRef = useRef(false);
+  useEffect(() => {
+    // Skip the first run to preserve existing DB values on modal open
+    if (!hasComputedRef.current) {
+      hasComputedRef.current = true;
+      return;
+    }
+
+    const dailyPay = Number(watched.daily_pay) || 0;
+    const holidayDays = Number(watched.holiday_days) || 0;
+    const snwhDays = Number(watched.snwh_days) || 0;
+
+    if (watched.holiday_days !== undefined) {
+      const computedHolidayPay = holidayDays * dailyPay;
+      setValue("holiday_pay", Number(computedHolidayPay.toFixed(2)), { shouldValidate: false });
+    }
+    if (watched.snwh_days !== undefined) {
+      const computedSnwhPay = snwhDays * (dailyPay * 0.30);
+      setValue("snwh_pay", Number(computedSnwhPay.toFixed(2)), { shouldValidate: false });
+    }
+  }, [watched.daily_pay, watched.holiday_days, watched.snwh_days, setValue]);
 
   const live = useMemo(() => computePayroll(watched), [watched]);
 
@@ -148,23 +177,28 @@ export default function EditModal({ employee, open, onClose }) {
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { key: "holiday_pay", label: "Holiday Pay" },
-                      { key: "snwh_pay", label: "SNWH Pay" },
-                      { key: "wellness_allowance", label: "Wellness" },
-                      { key: "communication_allowance", label: "Communication" },
-                      { key: "birthday_allowance", label: "Birthday" },
-                      { key: "commission", label: "Commission" },
-                      { key: "allowance", label: "Allowance" },
-                      { key: "bonuses", label: "Bonuses" },
-                      { key: "thirteenth_month_pay", label: "13th Month" },
-                    ].map(({ key, label }) => (
+                      { key: "holiday_days", label: "Holiday Days", type: "number" },
+                      { key: "holiday_pay", label: "Holiday Pay", type: "number" },
+                      { key: "snwh_days", label: "SNWH Days", type: "number" },
+                      { key: "snwh_pay", label: "SNWH Pay", type: "number" },
+                      { key: "wellness_allowance", label: "Wellness", type: "number" },
+                      { key: "communication_allowance", label: "Communication", type: "number" },
+                      { key: "birthday_allowance", label: "Birthday", type: "number" },
+                      { key: "commission", label: "Commission", type: "number" },
+                      { key: "commission_remarks", label: "Commission Remarks", type: "text" },
+                      { key: "allowance", label: "Allowance", type: "number" },
+                      { key: "bonuses", label: "Bonuses", type: "number" },
+                      { key: "thirteenth_month_pay", label: "13th Month", type: "number" },
+                      { key: "holiday_remarks", label: "Holiday Remarks", type: "text" },
+                      { key: "snwh_remarks", label: "SNWH Remarks", type: "text" },
+                    ].map(({ key, label, type = "number" }) => (
                       <div key={key} className="space-y-2">
                         <Label htmlFor={key}>{label}</Label>
                         {perms.canEditField(key) ? (
                           <Input
                             id={key}
-                            type="number"
-                            step="0.01"
+                            type={type}
+                            step={type === "number" ? "0.01" : undefined}
                             {...register(key)}
                             className={cn(errors[key] && "border-danger")}
                           />

@@ -104,7 +104,9 @@ export function computeMonthlySummary(employee) {
   const combined = {
     daily_pay: p1.daily_pay || 0,
     work_days: sum("work_days"),
+    holiday_days: sum("holiday_days"),
     holiday_pay: sum("holiday_pay"),
+    snwh_days: sum("snwh_days"),
     snwh_pay: sum("snwh_pay"),
     wellness_allowance: sum("wellness_allowance"),
     communication_allowance: sum("communication_allowance"),

@@ -2,6 +2,8 @@ import { useAuth } from "@/context/AuthContext";
 
 const MODERATOR_EDITABLE_FIELDS = [
   "work_days",
+  "holiday_days",
+  "snwh_days",
   "wellness_allowance",
   "communication_allowance",
   "birthday_allowance",

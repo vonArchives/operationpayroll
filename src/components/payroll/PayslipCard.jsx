@@ -10,7 +10,9 @@ import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabaseClient"; 
 
 const EARNINGS_KEYS = [
+  { key: "holiday_days", label: "Holiday Days", isDays: true },
   { key: "holiday_pay", label: "Holiday Pay" },
+  { key: "snwh_days", label: "SNWH Days", isDays: true },
   { key: "snwh_pay", label: "SNWH Pay" },
   { key: "wellness_allowance", label: "Wellness Allowance" },
   { key: "communication_allowance", label: "Communication Allowance" },
@@ -30,7 +32,7 @@ const DEDUCTIONS_KEYS = [
   { key: "others", label: "Others" },
 ];
 
-export default function PayslipCard({ employee, period, payrollData }) {
+export default function PayslipCard({ employee, period, payrollDate, payrollData }) {
   const computed = useMemo(
     () => computePayroll(payrollData || employee?.payroll_period1),
     [payrollData, employee]
@@ -103,7 +105,7 @@ export default function PayslipCard({ employee, period, payrollData }) {
     <div class="header">
       <h1>JPMC Payroll</h1>
       <p>Official Payslip</p>
-      <p class="period">${period}</p>
+      <p class="period">${payrollDate || period}</p>
     </div>
     <div class="employee-info">
       <p class="name">${employee.name}</p>
@@ -117,10 +119,11 @@ export default function PayslipCard({ employee, period, payrollData }) {
     </div>
     <div class="section">
       <p class="section-title">Earnings</p>
-      ${EARNINGS_KEYS.map(({ key, label }) => {
+      ${EARNINGS_KEYS.map(({ key, label, isDays }) => {
         const val = payroll[key];
+        const remarks = payroll[`${key}_remarks`];
         if (!val || Number(val) === 0) return "";
-        return `<div class="row"><span>${label}</span><span>${formatCurrency(val)}</span></div>`;
+        return `<div class="row"><span>${label}</span><span>${isDays ? val : formatCurrency(val)}</span></div>${remarks ? `<div class="row" style="font-size:11px;color:#94a3b8;padding-left:12px;"><span>${remarks}</span><span></span></div>` : ""}`;
       }).join("")}
       <div class="row total"><span>Total Earnings</span><span>${formatCurrency(computed.total_earnings)}</span></div>
     </div>
@@ -227,7 +230,7 @@ export default function PayslipCard({ employee, period, payrollData }) {
         <img src={logo} alt="JPMC" className="mx-auto mb-2 h-10 w-10 object-contain rounded-lg" />
         <h2 className="text-xl font-bold tracking-tight text-text-primary">JPMC Payroll</h2>
         <p className="text-sm font-medium uppercase tracking-wider text-text-muted">Official Payslip</p>
-        <p className="mt-1 text-xs text-text-muted">{period}</p>
+        <p className="mt-1 text-xs text-text-muted">{payrollDate || period}</p>
       </div>
 
       <div className="mt-4 text-sm">
@@ -259,13 +262,21 @@ export default function PayslipCard({ employee, period, payrollData }) {
       {/* Earnings */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Earnings</h3>
-        {EARNINGS_KEYS.map(({ key, label }) => {
+        {EARNINGS_KEYS.map(({ key, label, isDays }) => {
           const val = payroll[key];
+          const remarks = payroll[`${key}_remarks`];
           if (!val || Number(val) === 0) return null;
           return (
-            <div key={key} className="flex justify-between text-sm">
-              <span className="text-text-primary">{label}</span>
-              <span className="font-medium text-text-primary">{formatCurrency(val)}</span>
+            <div key={key}>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-primary">{label}</span>
+                <span className="font-medium text-text-primary">{isDays ? val : formatCurrency(val)}</span>
+              </div>
+              {remarks && (
+                <div className="pl-4 text-xs text-muted-foreground">
+                  {remarks}
+                </div>
+              )}
             </div>
           );
         })}

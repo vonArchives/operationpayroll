@@ -275,7 +275,14 @@ data = data.filter(
                 Payslip
               </DialogTitle>
             </DialogHeader>
-            <PayslipCard employee={selectedEmployee} period={payrollPeriod} />
+            <PayslipCard
+              employee={selectedEmployee}
+              period={payrollPeriod}
+              payrollDate={selectedEmployee?.payroll_period1?.date_to
+                ? new Date(selectedEmployee.payroll_period1.date_to + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                : payrollPeriod
+              }
+            />
           </div>
         </DialogContent>
       </Dialog>

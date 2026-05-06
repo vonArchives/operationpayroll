@@ -34,6 +34,7 @@ export default function PayrollTable({
   showDeductions,
   totals,
   isMonthly,
+  readOnly = false,
 }) {
   const { approvePayroll, unapprovePayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
@@ -95,7 +96,7 @@ export default function PayrollTable({
             )}
             {showEarnings && (
               <TableHead
-                colSpan={10}
+                colSpan={12}
                 className="bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
               >
                 Earnings
@@ -123,7 +124,7 @@ export default function PayrollTable({
             >
               Status
             </TableHead>
-            {!isMonthly && (
+            {!isMonthly && !readOnly && (
               <TableHead
                 rowSpan={2}
                 className="align-bottom text-xs font-bold uppercase"
@@ -142,8 +143,10 @@ export default function PayrollTable({
             )}
             {showEarnings && (
               <>
-                <TableHead className="bg-green-50 text-xs text-green-700">Holiday</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">SNWH</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Days</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Pay</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Days</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Pay</TableHead>
                 <TableHead className="bg-green-50 text-xs text-green-700">Wellness</TableHead>
                 <TableHead className="bg-green-50 text-xs text-green-700">Comm</TableHead>
                 <TableHead className="bg-green-50 text-xs text-green-700">Bday</TableHead>
@@ -189,7 +192,9 @@ export default function PayrollTable({
                 )}
                 {showEarnings && (
                   <>
+                    <TableCell>{payroll?.holiday_days || 0}</TableCell>
                     <TableCell>{formatCurrency(payroll?.holiday_pay)}</TableCell>
+                    <TableCell>{payroll?.snwh_days || 0}</TableCell>
                     <TableCell>{formatCurrency(payroll?.snwh_pay)}</TableCell>
                     <TableCell>{formatCurrency(payroll?.wellness_allowance)}</TableCell>
                     <TableCell>{formatCurrency(payroll?.communication_allowance)}</TableCell>
@@ -226,7 +231,7 @@ export default function PayrollTable({
                     </Badge>
                   )}
                 </TableCell>
-                {!isMonthly && (
+                {!isMonthly && !readOnly && (
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <TooltipProvider>
@@ -332,7 +337,9 @@ export default function PayrollTable({
               )}
               {showEarnings && (
                 <>
+                  <TableCell>{totals?.holiday_days || 0}</TableCell>
                   <TableCell>{formatCurrency(totals?.holiday_pay)}</TableCell>
+                  <TableCell>{totals?.snwh_days || 0}</TableCell>
                   <TableCell>{formatCurrency(totals?.snwh_pay)}</TableCell>
                   <TableCell>{formatCurrency(totals?.wellness_allowance)}</TableCell>
                   <TableCell>{formatCurrency(totals?.communication_allowance)}</TableCell>
@@ -359,7 +366,7 @@ export default function PayrollTable({
                 {formatCurrency(totals?.net_pay)}
               </TableCell>
               <TableCell />
-              {!isMonthly && <TableCell />}
+              {!isMonthly && !readOnly && <TableCell />}
             </TableRow>
           )}
         </TableBody>

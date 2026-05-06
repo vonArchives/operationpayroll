@@ -9,6 +9,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Employees from "@/pages/Employees";
 import PayrollRun from "@/pages/PayrollRun";
+import CashAdvance from "@/pages/CashAdvance";
 
 function AuthGuard({ children }) {
   const { isAuthenticated } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="employees" element={<Employees />} />
                   <Route path="payroll" element={<PayrollRun />} />
+                  <Route path="cash-advance" element={<CashAdvance />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Routes>

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  Wallet,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +17,7 @@ const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Employees", href: "/employees", icon: Users },
   { name: "Payroll Summary", href: "/payroll", icon: FileText },
+  { name: "Cash Advance", href: "/cash-advance", icon: Wallet },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {

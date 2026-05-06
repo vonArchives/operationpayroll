@@ -21,12 +21,17 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           monthly_pay: "monthly_pay",
         };
         const additionsMap = {
+          holiday_days: "holiday_days",
           holiday_pay: "holiday_pay",
+          snwh_days: "snwh_days",
           snwh_pay: "snwh_pay",
           wellness_allowance: "wellness_alw",
           communication_allowance: "comms_alw",
           birthday_allowance: "birthday_alw",
           commission: "commission",
+          commission_remarks: "commission_remarks",
+          holiday_remarks: "holiday_remarks",
+          snwh_remarks: "snwh_remarks",
           allowance: "allowance",
           bonuses: "bonus",
           thirteenth_month_pay: "thirteenth_mp",
@@ -49,6 +54,22 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           else if (additionsMap[key]) additionsFields[additionsMap[key]] = val;
           else if (deductionsMap[key]) deductionsFields[deductionsMap[key]] = val;
         });
+
+        // Auto-compute holiday_pay and snwh_pay from days when days changed and pay was not explicitly overridden
+        const currentPayroll = emp[`payroll_${period}`] || {};
+        const dailyPay = updatedFields.daily_pay ?? currentPayroll.daily_pay ?? 0;
+        const dailyPayNum = Number(dailyPay) || 0;
+
+        if (updatedFields.holiday_days !== undefined && updatedFields.holiday_pay === undefined) {
+          const holidayDays = Number(updatedFields.holiday_days) || 0;
+          additionsFields.holiday_pay = holidayDays * dailyPayNum;
+          updatedFields.holiday_pay = additionsFields.holiday_pay;
+        }
+        if (updatedFields.snwh_days !== undefined && updatedFields.snwh_pay === undefined) {
+          const snwhDays = Number(updatedFields.snwh_days) || 0;
+          additionsFields.snwh_pay = snwhDays * (dailyPayNum * 0.30);
+          updatedFields.snwh_pay = additionsFields.snwh_pay;
+        }
 
         // 1. Sanitize inputs: Convert empty strings to 0 so PostgreSQL numeric columns don't crash
         const sanitizeForDB = (fields) => {
