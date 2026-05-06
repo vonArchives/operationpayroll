@@ -56,8 +56,8 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         });
 
         // Auto-compute holiday_pay and snwh_pay from days when days changed and pay was not explicitly overridden
-        const currentPayroll = emp[`payroll_${period}`] || {};
-        const dailyPay = updatedFields.daily_pay ?? currentPayroll.daily_pay ?? 0;
+        const empPayroll = emp[`payroll_${period}`] || {};
+        const dailyPay = updatedFields.daily_pay ?? empPayroll.daily_pay ?? 0;
         const dailyPayNum = Number(dailyPay) || 0;
 
         if (updatedFields.holiday_days !== undefined && updatedFields.holiday_pay === undefined) {
