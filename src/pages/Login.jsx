@@ -149,7 +149,7 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="name@jpmorgan.com"
+                placeholder="name@domain.com"
                 {...register("email")}
                 className="h-11 pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-indigo-400/50 focus:ring-indigo-400/20 transition-all duration-200"
               />
