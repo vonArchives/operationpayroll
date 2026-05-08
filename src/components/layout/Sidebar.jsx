@@ -66,7 +66,9 @@ export default function Sidebar({ collapsed, onToggle }) {
         >
           {!collapsed && (
             <>
-              <img src={logo} alt="JPMC" className="h-8 w-8 object-contain rounded-lg shrink-0" />
+              <div className="bg-white rounded-lg p-1 shrink-0">
+                <img src={logo} alt="JPMC" className="h-6 w-6 object-contain" />
+              </div>
               <span className="truncate">JPMC Payroll</span>
             </>
           )}
