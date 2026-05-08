@@ -30,9 +30,9 @@ const schema = z.object({
   communication_allowance: z.coerce.number().min(0),
   birthday_allowance: z.coerce.number().min(0),
   commission: z.coerce.number().min(0),
-  // commission_remarks: z.string().optional(),
-  // holiday_remarks: z.string().optional(),
-  // snwh_remarks: z.string().optional(),
+  commission_remarks: z.string().optional(),
+  holiday_remarks: z.string().optional(),
+  snwh_remarks: z.string().optional(),
   allowance: z.coerce.number().min(0),
   bonuses: z.coerce.number().min(0),
   thirteenth_month_pay: z.coerce.number().min(0),
@@ -44,11 +44,11 @@ const schema = z.object({
   others: z.coerce.number().min(0),
 });
 
-function ReadOnlyInput({ id, value }) {
+function ReadOnlyInput({ id, value, type = "number" }) {
   return (
     <Input
       id={id}
-      type="number"
+      type={type}
       value={value ?? ""}
       disabled
       className="bg-muted cursor-not-allowed"

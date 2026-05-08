@@ -144,8 +144,10 @@ export function PayrollProvider({ children }) {
 
   useEffect(() => {
     const fetchEmployees = async () => {
+      console.log("1. fetchEmployees function was called!"); // ADD THIS
       setLoading(true);
       try {
+        console.log("2. About to ask Supabase for data..."); // ADD THIS
         const { data, error } = await supabase
           .from("payroll_period")
           .select(`
@@ -190,6 +192,11 @@ export function PayrollProvider({ children }) {
               pag_ibig,
               hmo,
               others
+            ),
+            payroll_remarks (
+              holiday_remarks,
+              snwh_remarks,
+              commission_remarks
             ),
             employee!payroll_period_emp_id_fkey (
               emp_id,

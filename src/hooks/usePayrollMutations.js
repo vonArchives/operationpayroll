@@ -29,9 +29,6 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           communication_allowance: "comms_alw",
           birthday_allowance: "birthday_alw",
           commission: "commission",
-          // commission_remarks: "commission_remarks",
-          // holiday_remarks: "holiday_remarks",
-          // snwh_remarks: "snwh_remarks",
           allowance: "allowance",
           bonuses: "bonus",
           thirteenth_month_pay: "thirteenth_mp",
@@ -48,6 +45,10 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         const basicpayFields = {};
         const additionsFields = {};
         const deductionsFields = {};
+
+        const holiday_remarks = updatedFields.holiday_remarks ?? "";
+        const snwh_remarks = updatedFields.snwh_remarks ?? "";
+        const commission_remarks = updatedFields.commission_remarks ?? "";
 
         Object.entries(updatedFields).forEach(([key, val]) => {
           if (basicpayMap[key]) basicpayFields[basicpayMap[key]] = val;
@@ -71,7 +72,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           updatedFields.snwh_pay = additionsFields.snwh_pay;
         }
 
-        // 1. Sanitize inputs: Convert empty strings to 0 so PostgreSQL numeric columns don't crash
+        // 1. Sanitize numeric inputs only
         const sanitizeForDB = (fields) => {
           const sanitized = {};
           Object.entries(fields).forEach(([k, v]) => {
@@ -84,7 +85,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         const safeAdds = sanitizeForDB(additionsFields);
         const safeDeducts = sanitizeForDB(deductionsFields);
 
-        // 2. Use .upsert() so it creates missing child rows for older data, while updating existing ones
+        // 2. Queue up all database updates
         const updates = [];
         if (Object.keys(safeBasic).length > 0)
           updates.push(
@@ -104,12 +105,24 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
               .upsert({ ...safeDeducts, pr_period_id }, { onConflict: "pr_period_id" })
           );
 
+        // ALWAYS upsert the remarks using the new table
+        updates.push(
+          supabase.from("payroll_remarks")
+            .upsert({
+              pr_period_id,
+              holiday_remarks,
+              snwh_remarks,
+              commission_remarks
+            }, { onConflict: "pr_period_id" })
+        );
+
         const changes = {};
         Object.entries(updatedFields).forEach(([key, val]) => {
           const oldVal = emp[`payroll_${period}`]?.[key];
           if (oldVal !== val) changes[key] = { from: oldVal, to: val };
         });
 
+        // 3. Execute all updates simultaneously
         const results = await Promise.all(updates);
         const errors = results.filter((r) => r.error);
         if (errors.length > 0) {
@@ -369,52 +382,40 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     if (periodError) return { success: false, error: periodError.message };
 
     const basicpayRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id,
-      monthly_pay: 0,
-      daily_pay: 0,
-      work_days: 0,
+      pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
     }));
 
     const additionsRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id,
-      holiday_days: 0,
-      holiday_pay: 0,
-      snwh_days: 0,
-      snwh_pay: 0,
-      wellness_alw: 0,
-      comms_alw: 0,
-      birthday_alw: 0,
-      commission: 0,
-      allowance: 0,
-      bonus: 0,
-      thirteenth_mp: 0,
+      pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0,
+      snwh_pay: 0, wellness_alw: 0, comms_alw: 0, birthday_alw: 0, commission: 0,
+      allowance: 0, bonus: 0, thirteenth_mp: 0,
     }));
 
     const deductionsRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id,
-      cash_advance: 0,
-      sss: 0,
-      phil_health: 0,
-      pag_ibig: 0,
-      hmo: 0,
-      others: 0,
+      pr_period_id: p.pr_period_id, cash_advance: 0, sss: 0, phil_health: 0,
+      pag_ibig: 0, hmo: 0, others: 0,
     }));
 
-    const [basicpayResult, additionsResult, deductionsResult] = await Promise.all([
+    const remarksRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id, holiday_remarks: "", snwh_remarks: "", commission_remarks: "",
+    }));
+
+    const [basicpayResult, additionsResult, deductionsResult, remarksResult] = await Promise.all([
       supabase.from("payroll_basicpay").insert(basicpayRows),
       supabase.from("payroll_additions").insert(additionsRows),
       supabase.from("payroll_deductions").insert(deductionsRows),
+      supabase.from("payroll_remarks").insert(remarksRows),
     ]);
 
     if (basicpayResult.error) return { success: false, error: basicpayResult.error.message };
     if (additionsResult.error) return { success: false, error: additionsResult.error.message };
     if (deductionsResult.error) return { success: false, error: deductionsResult.error.message };
+    if (remarksResult.error) return { success: false, error: remarksResult.error.message };
 
     return { success: true };
   }, []);
 
   const generatePayrollForNewEmployee = useCallback(async (empId) => {
-    // 1. Figure out the current month boundaries
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -426,21 +427,16 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     const period2From = `${monthStr}-16`;
     const period2To = `${monthStr}-${lastDay}`;
 
-    // 2. SMART CHECK: Has the admin even generated this month's payroll yet?
-    // We check if ANY record exists for the 1st of this month.
     const { data: existingGlobal } = await supabase
       .from("payroll_period")
       .select("pr_period_id")
       .eq("date_from", period1From)
       .limit(1);
 
-    // If no one has payroll for this month, we do nothing. 
-    // The new employee will be included automatically when the admin eventually clicks "New Payroll Month".
     if (!existingGlobal || existingGlobal.length === 0) {
       return { success: true, skipped: true };
     }
 
-    // 3. Create Period 1 and Period 2 for the new employee
     const periods = [
       { emp_id: empId, date_from: period1From, date_to: period1To, status: "Pending" },
       { emp_id: empId, date_from: period2From, date_to: period2To, status: "Pending" }
@@ -453,7 +449,6 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
 
     if (periodError) return { success: false, error: periodError.message };
 
-    // 4. Generate the 0-value child rows using the new pr_period_ids
     const basicpayRows = insertedPeriods.map((p) => ({
       pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
     }));
@@ -469,16 +464,22 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       pag_ibig: 0, hmo: 0, others: 0,
     }));
 
-    // 5. Fire all database inserts at the same time
-    const [bRes, aRes, dRes] = await Promise.all([
+    // NEW: Initialize empty remarks rows for the new employee
+    const remarksRows = insertedPeriods.map((p) => ({
+      pr_period_id: p.pr_period_id, holiday_remarks: "", snwh_remarks: "", commission_remarks: "",
+    }));
+
+    const [bRes, aRes, dRes, rRes] = await Promise.all([
       supabase.from("payroll_basicpay").insert(basicpayRows),
       supabase.from("payroll_additions").insert(additionsRows),
       supabase.from("payroll_deductions").insert(deductionsRows),
+      supabase.from("payroll_remarks").insert(remarksRows),
     ]);
 
     if (bRes.error) return { success: false, error: bRes.error.message };
     if (aRes.error) return { success: false, error: aRes.error.message };
     if (dRes.error) return { success: false, error: dRes.error.message };
+    if (rRes.error) return { success: false, error: rRes.error.message };
 
     return { success: true, skipped: false };
   }, []);

@@ -6,15 +6,23 @@
 
 function shapePeriod(period) {
   if (!period) return null;
+  
   const basicpay = Array.isArray(period.payroll_basicpay)
     ? period.payroll_basicpay[0] || {}
     : period.payroll_basicpay || {};
+    
   const additions = Array.isArray(period.payroll_additions)
     ? period.payroll_additions[0] || {}
     : period.payroll_additions || {};
+    
   const deductions = Array.isArray(period.payroll_deductions)
     ? period.payroll_deductions[0] || {}
     : period.payroll_deductions || {};
+    
+  const remarks = Array.isArray(period.payroll_remarks)
+    ? period.payroll_remarks[0] || {}
+    : period.payroll_remarks || {};
+
   const auditLog = (period.audit_log || []).map((log) => ({
     id: log.id,
     action: log.action,
@@ -29,9 +37,11 @@ function shapePeriod(period) {
     date_to: period.date_to,
     status: period.status || "Pending",
     auditLog,
+    
     daily_pay: basicpay.daily_pay,
     work_days: basicpay.work_days,
     monthly_pay: basicpay.monthly_pay,
+    
     holiday_days: additions.holiday_days,
     holiday_pay: additions.holiday_pay,
     snwh_days: additions.snwh_days,
@@ -40,12 +50,14 @@ function shapePeriod(period) {
     communication_allowance: additions.comms_alw,
     birthday_allowance: additions.birthday_alw,
     commission: additions.commission,
-    //commission_remarks: additions.commission_remarks,
-    // holiday_remarks: additions.holiday_remarks,
-    // snwh_remarks: additions.snwh_remarks,
     allowance: additions.allowance,
     bonuses: additions.bonus,
     thirteenth_month_pay: additions.thirteenth_mp,
+    
+    commission_remarks: remarks.commission_remarks || "",
+    holiday_remarks: remarks.holiday_remarks || "",
+    snwh_remarks: remarks.snwh_remarks || "",
+    
     cash_advance: deductions.cash_advance,
     sss: deductions.sss,
     philhealth: deductions.phil_health,
