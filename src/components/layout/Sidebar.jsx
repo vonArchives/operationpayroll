@@ -37,16 +37,16 @@ export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-card transition-all duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo + Toggle */}
-      <div className="flex h-16 items-center border-b px-4">
+      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
         <Link
           to="/dashboard"
           className={cn(
-            "flex items-center font-bold text-lg text-primary transition-all",
+            "flex items-center font-bold text-lg text-sidebar-foreground transition-all",
             collapsed ? "gap-0" : "gap-2"
           )}
         >
@@ -60,7 +60,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         <button
           onClick={onToggle}
           className={cn(
-            "ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+            "ml-auto rounded-md p-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors",
             collapsed && "ml-0 mt-2"
           )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -81,13 +81,13 @@ export default function Sidebar({ collapsed, onToggle }) {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-sidebar-accent text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                 collapsed && "justify-center px-2"
               )}
               title={collapsed ? item.name : undefined}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60")} />
               {!collapsed && <span className="truncate">{item.name}</span>}
             </Link>
           );
@@ -95,23 +95,23 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* User */}
-      <div className="border-t p-2">
+      <div className="border-t border-sidebar-border p-2">
         <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-3")}>
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shrink-0"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-foreground shrink-0"
             title={collapsed ? user?.name : undefined}
           >
             {initials}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
               <span
                 className={cn(
                   "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
                   user?.role === "admin"
-                    ? "bg-[#1e3682]/10 text-[#1e3682]"
-                    : "bg-purple-100 text-purple-700"
+                    ? "bg-sidebar-primary/20 text-sidebar-primary"
+                    : "bg-sidebar-accent text-sidebar-foreground/80"
                 )}
               >
                 {user?.role}
@@ -120,7 +120,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
           <button
             onClick={logout}
-            className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
+            className="rounded-md p-2 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
             aria-label="Logout"
             title="Logout"
           >

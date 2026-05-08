@@ -22,7 +22,7 @@ export default function AppShell() {
   }, []);
 
   return (
-    <div className="flex min-h-svh bg-background">
+    <div className="flex min-h-svh bg-[#F4F7FF]">
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((prev) => !prev)} />
       <div
         className={cn(

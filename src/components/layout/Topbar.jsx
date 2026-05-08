@@ -28,7 +28,7 @@ export default function Topbar() {
   const initials = getInitials(user?.name, "U");
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur px-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
       <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground hidden sm:inline">{today}</span>

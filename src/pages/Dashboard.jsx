@@ -38,9 +38,9 @@ export default function Dashboard() {
   }, [employees]);
 
   const payrollStatus = useMemo(() => {
-    if (payrollSent) return { label: "Sent", color: "text-green-600 bg-green-50" };
-    if (stats.pending > 0) return { label: "In Progress", color: "text-yellow-600 bg-yellow-50" };
-    return { label: "Ready to Send", color: "text-blue-600 bg-blue-50" };
+    if (payrollSent) return { label: "Sent", badgeStyle: "bg-green-100 text-green-700 border border-green-200" };
+    if (stats.pending > 0) return { label: "In Progress", badgeStyle: "bg-amber-100 text-amber-700 border border-amber-200" };
+    return { label: "Ready to Send", badgeStyle: "bg-blue-100 text-blue-700 border border-blue-200" };
   }, [payrollSent, stats.pending]);
 
   const recentActivity = useMemo(() => {
@@ -62,12 +62,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[#1a2e4a]">Dashboard</h1>
         <p className="text-muted-foreground">
           Overview of your payroll for{" "}
-          <span className="font-medium text-foreground">{payrollPeriod}</span>
+          <span className="font-medium text-[#3C72FC]">{payrollPeriod}</span>
           <span
-            className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${payrollStatus.color}`}
+            className={`ml-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${payrollStatus.badgeStyle}`}
           >
             {payrollStatus.label}
           </span>
@@ -125,25 +125,25 @@ export default function Dashboard() {
           <CardContent className="space-y-3">
             <Button
               variant="outline"
-              className="w-full justify-between"
+              className="w-full justify-between group hover:bg-[#3C72FC] hover:text-white hover:border-[#3C72FC] transition-all"
               onClick={() => navigate("/payroll")}
             >
               <span className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Go to Payroll Run
               </span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-between"
+              className="w-full justify-between group hover:bg-[#3C72FC] hover:text-white hover:border-[#3C72FC] transition-all"
               onClick={() => navigate("/employees")}
             >
               <span className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 View Employees
               </span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </CardContent>
         </Card>
