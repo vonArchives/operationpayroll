@@ -47,27 +47,27 @@ export default function Sidebar({ collapsed, onToggle }) {
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-20" : "w-72"
       )}
       style={{ backgroundColor: NAVY_BG, borderRight: `1px solid ${NAVY_BORDER}` }}
     >
       {/* Logo + Toggle */}
       <div
-        className="flex h-16 items-center px-4"
+        className="flex h-20 items-center px-5"
         style={{ borderBottom: `1px solid ${NAVY_BORDER}` }}
       >
         <Link
           to="/dashboard"
           className={cn(
-            "flex items-center font-bold text-lg transition-all",
+            "flex items-center font-bold text-xl transition-all",
             collapsed ? "gap-0" : "gap-2"
           )}
           style={{ color: WHITE }}
         >
           {!collapsed && (
             <>
-              <div className="bg-white rounded-lg p-1 shrink-0">
-                <img src={logo} alt="JPMC" className="h-6 w-6 object-contain" />
+              <div className="bg-white rounded-xl p-1.5 shrink-0">
+                <img src={logo} alt="JPMC" className="h-8 w-8 object-contain" />
               </div>
               <span className="truncate">JPMC Payroll</span>
             </>
@@ -85,12 +85,12 @@ export default function Sidebar({ collapsed, onToggle }) {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-2 p-3">
         {[...baseNavItems, ...(isAdmin ? adminNavItems : [])].map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -98,7 +98,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               key={item.name}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-medium transition-colors",
                 collapsed && "justify-center px-2"
               )}
               style={{
@@ -114,7 +114,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               title={collapsed ? item.name : undefined}
             >
               <item.icon
-                className="h-5 w-5 shrink-0"
+                className="h-6 w-6 shrink-0"
                 style={{ color: isActive ? BRAND_BLUE : WHITE_60 }}
               />
               {!collapsed && <span className="truncate">{item.name}</span>}
@@ -124,10 +124,10 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* User */}
-      <div className="p-2" style={{ borderTop: `1px solid ${NAVY_BORDER}` }}>
-        <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-3")}>
+      <div className="p-3" style={{ borderTop: `1px solid ${NAVY_BORDER}` }}>
+        <div className={cn("flex items-center", collapsed ? "flex-col gap-3" : "gap-4")}>
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold shrink-0"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-base font-semibold shrink-0"
             style={{ backgroundColor: NAVY_LIGHT, color: WHITE }}
             title={collapsed ? user?.name : undefined}
           >
@@ -135,13 +135,13 @@ export default function Sidebar({ collapsed, onToggle }) {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: WHITE }}>
+              <p className="text-base font-medium truncate" style={{ color: WHITE }}>
                 {user?.name}
               </p>
               <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium capitalize"
                 style={{
-                  backgroundColor: user?.role === "admin" ? "rgba(60,114,252,0.2)" : NAVY_LIGHT,
+                  backgroundColor: user?.role === "admin" ? "rgba(25,114,249,0.2)" : NAVY_LIGHT,
                   color: user?.role === "admin" ? BRAND_BLUE : WHITE_70,
                 }}
               >
@@ -151,14 +151,14 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
           <button
             onClick={logout}
-            className="rounded-md p-2 transition-colors"
+            className="rounded-lg p-2.5 transition-colors"
             style={{ color: WHITE_60 }}
             onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}
             onMouseLeave={(e) => (e.currentTarget.style.color = WHITE_60)}
             aria-label="Logout"
             title="Logout"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-5 w-5" />
           </button>
         </div>
       </div>

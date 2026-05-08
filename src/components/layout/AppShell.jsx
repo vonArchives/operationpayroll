@@ -27,7 +27,7 @@ export default function AppShell() {
       <div
         className={cn(
           "flex flex-1 flex-col transition-all duration-300 ease-in-out",
-          sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
         )}
       >
         <Topbar />
