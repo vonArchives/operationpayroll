@@ -1,110 +1,102 @@
 import { useState, useMemo } from "react";
-import { usePayroll } from "@/hooks/usePayroll";
-import { computePayroll, computeMonthlySummary } from "@/lib/payrollUtils";
-import PayrollTable from "@/components/payroll/PayrollTable";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useCashAdvances } from "@/hooks/useCashAdvances";
+import { formatCurrency } from "@/lib/payrollUtils";
+import CashAdvanceCard from "@/components/cashadvance/CashAdvanceCard";
+import CashAdvanceModal from "@/components/cashadvance/CashAdvanceModal";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X, Wallet } from "lucide-react";
-
-const PERIODS = [
-  { key: "period1", label: "Period 1", sub: "Mid-Month" },
-  { key: "period2", label: "Period 2", sub: "End-of-Month" },
-  { key: "monthly", label: "Monthly", sub: "Summary" },
-];
+import { Search, X, Plus, Wallet, Loader2 } from "lucide-react";
 
 export default function CashAdvance() {
-  const { employees, payrollPeriod, currentPeriod, switchPeriod, loading, error } = usePayroll();
+  const {
+    records,
+    employees,
+    loading,
+    mutationLoading,
+    createRecord,
+    updateRecord,
+    recordPayment,
+    deleteRecord,
+  } = useCashAdvances();
+
   const [search, setSearch] = useState("");
-  const [showBasic, setShowBasic] = useState(true);
-  const [showEarnings, setShowEarnings] = useState(true);
-  const [showDeductions, setShowDeductions] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("new");
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
-  const isMonthly = currentPeriod === "monthly";
-  const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
-
-  const cashAdvanceEmployees = useMemo(() => {
-    let data = employees.filter((emp) => {
-      if (isMonthly) {
-        const p1 = emp.payroll_period1;
-        const p2 = emp.payroll_period2;
-        const hasCa = (p1 && (p1.cash_advance || 0) > 0) || (p2 && (p2.cash_advance || 0) > 0);
-        return hasCa;
-      }
-      const payroll = emp[payrollKey] || emp.payroll;
-      return payroll && (payroll.cash_advance || 0) > 0;
-    });
+  const filteredRecords = useMemo(() => {
+    let data = [...records];
 
     const term = search.trim().toLowerCase();
     if (term) {
-      data = data.filter((emp) => emp.name.toLowerCase().includes(term));
+      data = data.filter((r) =>
+        r.employee_name.toLowerCase().includes(term)
+      );
     }
+
+    if (statusFilter !== "all") {
+      data = data.filter((r) => r.status === statusFilter);
+    }
+
     return data;
-  }, [employees, search, isMonthly, payrollKey]);
+  }, [records, search, statusFilter]);
 
-  const totals = useMemo(() => {
-    const t = {
-      daily_pay: 0, work_days: 0, total_basic_pay: 0, holiday_days: 0, holiday_pay: 0,
-      snwh_days: 0, snwh_pay: 0, wellness_allowance: 0, communication_allowance: 0,
-      birthday_allowance: 0, commission: 0, allowance: 0, bonuses: 0,
-      thirteenth_month_pay: 0, total_earnings: 0, cash_advance: 0,
-      sss: 0, philhealth: 0, pagibig: 0, hmo: 0, others: 0,
-      total_deductions: 0, net_pay: 0,
+  const summary = useMemo(() => {
+    const active = records.filter((r) => r.status === "active");
+    return {
+      totalLoans: records.length,
+      activeLoans: active.length,
+      totalAmount: records.reduce((s, r) => s + r.total_amount, 0),
+      totalPaid: records.reduce((s, r) => s + r.present_paid, 0),
+      totalBalance: records.reduce(
+        (s, r) => s + (r.total_amount - r.present_paid),
+        0
+      ),
     };
+  }, [records]);
 
-    cashAdvanceEmployees.forEach((emp) => {
-      let p, c;
-      if (isMonthly) {
-        c = computeMonthlySummary(emp);
-        p = c;
-      } else {
-        p = emp[payrollKey] || emp.payroll;
-        if (!p) return;
-        c = computePayroll(p);
-      }
+  const handleNew = () => {
+    setSelectedRecord(null);
+    setModalMode("new");
+    setModalOpen(true);
+  };
 
-      t.daily_pay += p.daily_pay || 0;
-      t.work_days += p.work_days || 0;
-      t.total_basic_pay += c.total_basic_pay || 0;
-      t.holiday_days += p.holiday_days || 0;
-      t.holiday_pay += p.holiday_pay || 0;
-      t.snwh_days += p.snwh_days || 0;
-      t.snwh_pay += p.snwh_pay || 0;
-      t.wellness_allowance += p.wellness_allowance || 0;
-      t.communication_allowance += p.communication_allowance || 0;
-      t.birthday_allowance += p.birthday_allowance || 0;
-      t.commission += p.commission || 0;
-      t.allowance += p.allowance || 0;
-      t.bonuses += p.bonuses || 0;
-      t.thirteenth_month_pay += p.thirteenth_month_pay || 0;
-      t.total_earnings += c.total_earnings || 0;
-      t.cash_advance += p.cash_advance || 0;
-      t.sss += p.sss || 0;
-      t.philhealth += p.philhealth || 0;
-      t.pagibig += p.pagibig || 0;
-      t.hmo += p.hmo || 0;
-      t.others += p.others || 0;
-      t.total_deductions += c.total_deductions || 0;
-      t.net_pay += c.net_pay || 0;
+  const handleEdit = (record) => {
+    setSelectedRecord(record);
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  const handlePayment = (record) => {
+    setSelectedRecord(record);
+    setModalMode("payment");
+    setModalOpen(true);
+  };
+
+  const handleComplete = async (record) => {
+    await updateRecord(record.id, {
+      ...record,
+      status: "completed",
+      present_paid: record.total_amount,
     });
-    return t;
-  }, [cashAdvanceEmployees, isMonthly, payrollKey]);
+  };
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="rounded-md bg-destructive/15 p-4 text-destructive">
-          <p className="font-medium">Error loading payroll data</p>
-          <p className="text-sm">{error.message || error}</p>
-        </div>
-      </div>
-    );
-  }
+  const handleModalSubmit = async (data) => {
+    let success = false;
+
+    if (modalMode === "new") {
+      success = await createRecord(data);
+    } else if (modalMode === "edit" && selectedRecord) {
+      success = await updateRecord(selectedRecord.id, data);
+    } else if (modalMode === "payment" && selectedRecord) {
+      success = await recordPayment(selectedRecord.id, data.amount);
+    }
+
+    if (success) setModalOpen(false);
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -112,32 +104,69 @@ export default function CashAdvance() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Cash Advance — {payrollPeriod}
+            Cash Advance
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View employees with cash advance deductions.
+            Track employee loans and payment progress.
           </p>
         </div>
+        <Button onClick={handleNew} className="gap-2">
+          <Plus className="h-4 w-4" />
+          New Cash Advance
+        </Button>
       </div>
 
-      {/* Period Selector */}
-      <div className="flex rounded-lg border bg-card p-1 w-fit">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => switchPeriod && switchPeriod(p.key)}
-            className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              currentPeriod === p.key
-                ? "bg-primary text-white"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <span>{p.label}</span>
-            <span className={`ml-1 text-xs ${currentPeriod === p.key ? "text-white/80" : ""}`}>
-              {p.sub}
-            </span>
-          </button>
-        ))}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Loans
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{summary.activeLoans}</p>
+            <p className="text-xs text-muted-foreground">
+              of {summary.totalLoans} total
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Loaned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {formatCurrency(summary.totalAmount)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Collected
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-green-600">
+              {formatCurrency(summary.totalPaid)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Outstanding
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-red-600">
+              {formatCurrency(summary.totalBalance)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Controls */}
@@ -146,7 +175,7 @@ export default function CashAdvance() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search by name..."
+            placeholder="Search by employee..."
             className="pl-9 pr-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -161,119 +190,81 @@ export default function CashAdvance() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <label className="flex cursor-pointer items-center gap-1.5 text-sm">
-            <input
-              type="checkbox"
-              checked={showBasic}
-              onChange={(e) => setShowBasic(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            Basic
-          </label>
-          <label className="flex cursor-pointer items-center gap-1.5 text-sm">
-            <input
-              type="checkbox"
-              checked={showEarnings}
-              onChange={(e) => setShowEarnings(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            Earnings
-          </label>
-          <label className="flex cursor-pointer items-center gap-1.5 text-sm">
-            <input
-              type="checkbox"
-              checked={showDeductions}
-              onChange={(e) => setShowDeductions(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            Deductions
-          </label>
+
+        <div className="flex rounded-lg border bg-card p-1 w-fit">
+          {["all", "active", "completed"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setStatusFilter(f)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                statusFilter === f
+                  ? "bg-primary text-white"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Employees with Cash Advance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{cashAdvanceEmployees.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Cash Advance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-red-600">
-              {Number(totals?.cash_advance || 0).toLocaleString("en-PH", {
-                style: "currency",
-                currency: "PHP",
-              })}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Net Pay
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-purple-700">
-              {Number(totals?.net_pay || 0).toLocaleString("en-PH", {
-                style: "currency",
-                currency: "PHP",
-              })}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Table */}
-      <Card>
-        <CardContent className="pt-6">
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-16" />
+      {/* Cards Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-5 space-y-4">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
                 </div>
-              ))}
-            </div>
-          ) : cashAdvanceEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Wallet className="mb-3 h-10 w-10 text-muted-foreground" />
-              <p className="text-sm font-medium text-muted-foreground">
-                No employees with cash advances
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Cash advance records will appear here when an employee has a cash advance deduction.
-              </p>
-            </div>
-          ) : (
-            <PayrollTable
-              employees={cashAdvanceEmployees}
-              showBasic={showBasic}
-              showEarnings={showEarnings}
-              showDeductions={showDeductions}
-              totals={totals}
-              isMonthly={isMonthly}
-              readOnly
+                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-8 w-1/3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredRecords.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Wallet className="mb-4 h-12 w-12 text-muted-foreground" />
+          <p className="text-lg font-medium text-muted-foreground">
+            No cash advances found
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {records.length === 0
+              ? "Create a new cash advance to get started."
+              : "Try adjusting your search or filters."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredRecords.map((record) => (
+            <CashAdvanceCard
+              key={record.id}
+              record={record}
+              onEdit={handleEdit}
+              onPayment={handlePayment}
+              onComplete={handleComplete}
+              onDelete={deleteRecord}
             />
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      <CashAdvanceModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        mode={modalMode}
+        record={selectedRecord}
+        employees={employees}
+        onSubmit={handleModalSubmit}
+        loading={mutationLoading}
+      />
     </div>
   );
 }

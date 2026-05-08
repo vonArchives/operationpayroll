@@ -13,16 +13,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const navItems = [
+const baseNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Employees", href: "/employees", icon: Users },
   { name: "Payroll Summary", href: "/payroll", icon: FileText },
+];
+
+const adminNavItems = [
   { name: "Cash Advance", href: "/cash-advance", icon: Wallet },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     localStorage.setItem("sidebar_collapsed", JSON.stringify(collapsed));
@@ -68,7 +72,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
-        {navItems.map((item) => {
+        {[...baseNavItems, ...(isAdmin ? adminNavItems : [])].map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link

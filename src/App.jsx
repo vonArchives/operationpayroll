@@ -4,6 +4,7 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { PayrollProvider } from "@/context/PayrollContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PrivateRoute from "@/components/PrivateRoute";
+import AdminRoute from "@/components/AdminRoute";
 import AppShell from "@/components/layout/AppShell";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -51,7 +52,14 @@ export default function App() {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="employees" element={<Employees />} />
                   <Route path="payroll" element={<PayrollRun />} />
-                  <Route path="cash-advance" element={<CashAdvance />} />
+                  <Route
+                    path="cash-advance"
+                    element={
+                      <AdminRoute>
+                        <CashAdvance />
+                      </AdminRoute>
+                    }
+                  />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Routes>
