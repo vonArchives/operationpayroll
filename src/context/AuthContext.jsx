@@ -42,6 +42,22 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
 
+  // Dev bypass: auto-login as mock admin in development
+  useEffect(() => {
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === "true") {
+      const mockUser = {
+        name: "Dev Admin",
+        role: "admin",
+        emp_id: "DEV001",
+        email: "dev@local",
+      };
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      setSessionExpiresAt(Date.now() + SESSION_TIMEOUT_MS);
+      return;
+    }
+  }, []);
+
   // Restore session on mount from cookie (JWT) or localStorage fallback
   useEffect(() => {
     // Path 1: JWT cookie (new edge function)
