@@ -13,7 +13,15 @@ import CashAdvance from "@/pages/CashAdvance";
 
 function AuthGuard({ children }) {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+  const isDevBypass =
+    import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === "true";
+
+  // In dev bypass mode, allow visiting /login without redirecting
+  if (isAuthenticated && !isDevBypass) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 }
 
 export default function App() {
