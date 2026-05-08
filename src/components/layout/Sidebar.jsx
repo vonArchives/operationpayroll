@@ -13,6 +13,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const NAVY_BG = "#0d1829";
+const NAVY_LIGHT = "#1a2744";
+const NAVY_BORDER = "#1a2744";
+const BRAND_BLUE = "#3C72FC";
+const WHITE = "#ffffff";
+const WHITE_60 = "rgba(255,255,255,0.6)";
+const WHITE_70 = "rgba(255,255,255,0.7)";
+
 const baseNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Employees", href: "/employees", icon: Users },
@@ -37,18 +45,23 @@ export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
         collapsed ? "w-16" : "w-64"
       )}
+      style={{ backgroundColor: NAVY_BG, borderRight: `1px solid ${NAVY_BORDER}` }}
     >
       {/* Logo + Toggle */}
-      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
+      <div
+        className="flex h-16 items-center px-4"
+        style={{ borderBottom: `1px solid ${NAVY_BORDER}` }}
+      >
         <Link
           to="/dashboard"
           className={cn(
-            "flex items-center font-bold text-lg text-sidebar-foreground transition-all",
+            "flex items-center font-bold text-lg transition-all",
             collapsed ? "gap-0" : "gap-2"
           )}
+          style={{ color: WHITE }}
         >
           {!collapsed && (
             <>
@@ -60,9 +73,12 @@ export default function Sidebar({ collapsed, onToggle }) {
         <button
           onClick={onToggle}
           className={cn(
-            "ml-auto rounded-md p-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors",
+            "ml-auto rounded-md p-1 transition-colors",
             collapsed && "ml-0 mt-2"
           )}
+          style={{ color: WHITE_60 }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = WHITE_60)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -80,14 +96,24 @@ export default function Sidebar({ collapsed, onToggle }) {
               to={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                 collapsed && "justify-center px-2"
               )}
+              style={{
+                color: isActive ? WHITE : WHITE_70,
+                backgroundColor: isActive ? NAVY_LIGHT : "transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = NAVY_LIGHT;
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
+              }}
               title={collapsed ? item.name : undefined}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60")} />
+              <item.icon
+                className="h-5 w-5 shrink-0"
+                style={{ color: isActive ? BRAND_BLUE : WHITE_60 }}
+              />
               {!collapsed && <span className="truncate">{item.name}</span>}
             </Link>
           );
@@ -95,24 +121,26 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* User */}
-      <div className="border-t border-sidebar-border p-2">
+      <div className="p-2" style={{ borderTop: `1px solid ${NAVY_BORDER}` }}>
         <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-3")}>
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-foreground shrink-0"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold shrink-0"
+            style={{ backgroundColor: NAVY_LIGHT, color: WHITE }}
             title={collapsed ? user?.name : undefined}
           >
             {initials}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
+              <p className="text-sm font-medium truncate" style={{ color: WHITE }}>
+                {user?.name}
+              </p>
               <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                  user?.role === "admin"
-                    ? "bg-sidebar-primary/20 text-sidebar-primary"
-                    : "bg-sidebar-accent text-sidebar-foreground/80"
-                )}
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                style={{
+                  backgroundColor: user?.role === "admin" ? "rgba(60,114,252,0.2)" : NAVY_LIGHT,
+                  color: user?.role === "admin" ? BRAND_BLUE : WHITE_70,
+                }}
               >
                 {user?.role}
               </span>
@@ -120,7 +148,10 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
           <button
             onClick={logout}
-            className="rounded-md p-2 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="rounded-md p-2 transition-colors"
+            style={{ color: WHITE_60 }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = WHITE_60)}
             aria-label="Logout"
             title="Logout"
           >
