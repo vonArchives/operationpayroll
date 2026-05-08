@@ -70,7 +70,7 @@ export default function Login() {
   return (
     <div className="flex min-h-svh font-['Jost',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif]">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-[300px] flex-col justify-between bg-[#3C72FC] relative overflow-hidden p-10 pb-10">
+      <aside className="hidden md:flex w-[300px] flex-col justify-between bg-gradient-to-br from-[#1E3A8A] via-[#2563EB] to-[#3C72FC] relative overflow-hidden p-10 pb-10 shadow-[8px_0_32px_rgba(0,0,0,0.45)]">
         {/* Grid overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
