@@ -30,9 +30,9 @@ const schema = z.object({
   communication_allowance: z.coerce.number().min(0),
   birthday_allowance: z.coerce.number().min(0),
   commission: z.coerce.number().min(0),
-  commission_remarks: z.string().optional(),
-  holiday_remarks: z.string().optional(),
-  snwh_remarks: z.string().optional(),
+  // commission_remarks: z.string().optional(),
+  // holiday_remarks: z.string().optional(),
+  // snwh_remarks: z.string().optional(),
   allowance: z.coerce.number().min(0),
   bonuses: z.coerce.number().min(0),
   thirteenth_month_pay: z.coerce.number().min(0),
@@ -69,6 +69,7 @@ export default function EditModal({ employee, open, onClose }) {
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(schema),
@@ -78,7 +79,7 @@ export default function EditModal({ employee, open, onClose }) {
 
   const watched = useWatch({ control });
 
-  // Auto-compute holiday_pay and snwh_pay when days or daily_pay changes
+  // Auto-compute default holiday/SNWH RATES (not totals) when days are added
   const hasComputedRef = useRef(false);
   useEffect(() => {
     // Skip the first run to preserve existing DB values on modal open
@@ -91,15 +92,20 @@ export default function EditModal({ employee, open, onClose }) {
     const holidayDays = Number(watched.holiday_days) || 0;
     const snwhDays = Number(watched.snwh_days) || 0;
 
-    if (watched.holiday_days !== undefined) {
-      const computedHolidayPay = holidayDays * dailyPay;
-      setValue("holiday_pay", Number(computedHolidayPay.toFixed(2)), { shouldValidate: false });
+    // Grab the current input values without triggering infinite re-renders
+    const currentHolidayPay = Number(getValues("holiday_pay")) || 0;
+    const currentSnwhPay = Number(getValues("snwh_pay")) || 0;
+
+    // Only auto-fill the standard rate if they entered days AND the pay rate is currently 0.
+    if (holidayDays > 0 && currentHolidayPay === 0) {
+      setValue("holiday_pay", Number(dailyPay.toFixed(2)), { shouldValidate: true });
     }
-    if (watched.snwh_days !== undefined) {
-      const computedSnwhPay = snwhDays * (dailyPay * 0.30);
-      setValue("snwh_pay", Number(computedSnwhPay.toFixed(2)), { shouldValidate: false });
+    
+    if (snwhDays > 0 && currentSnwhPay === 0) {
+      setValue("snwh_pay", Number((dailyPay * 0.30).toFixed(2)), { shouldValidate: true });
     }
-  }, [watched.daily_pay, watched.holiday_days, watched.snwh_days, setValue]);
+    
+  }, [watched.daily_pay, watched.holiday_days, watched.snwh_days, setValue, getValues]);
 
   const live = useMemo(() => computePayroll(watched), [watched]);
 

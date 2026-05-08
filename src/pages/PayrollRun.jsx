@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useAuth } from "@/context/AuthContext";
-import { computePayroll, computeMonthlySummary } from "@/lib/payrollUtils";
+import { computePayroll, computeMonthlySummary, toNum } from "@/lib/payrollUtils";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import PayrollTable from "@/components/payroll/PayrollTable";
 import {
@@ -173,6 +173,10 @@ export default function PayrollRun() {
       t.daily_pay += p.daily_pay || 0;
       t.work_days += p.work_days || 0;
       t.total_basic_pay += c.total_basic_pay || 0;
+      t.holiday_days += p.holiday_days || 0;
+      t.holiday_pay += (toNum(p.holiday_days) * toNum(p.holiday_pay)); 
+      t.snwh_days += p.snwh_days || 0;
+      t.snwh_pay += (toNum(p.snwh_days) * toNum(p.snwh_pay));
       t.holiday_days += p.holiday_days || 0;
       t.holiday_pay += p.holiday_pay || 0;
       t.snwh_days += p.snwh_days || 0;

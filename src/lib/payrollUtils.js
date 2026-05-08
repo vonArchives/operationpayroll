@@ -10,6 +10,16 @@ export function formatCurrency(value) {
   });
 }
 
+/*
+Moved the toNum function outside to 
+handle all other toNum formatting in the same way.
+*/
+export const toNum = (val) => {
+    if (val === "" || val === null || val === undefined) return 0;
+    const n = Number(val);
+    return Number.isNaN(n) ? 0 : n;
+  };
+
 /**
  * Pure function to compute payroll totals from raw field inputs.
  * All inputs default to 0 if NaN, null, undefined, or empty string.
@@ -18,20 +28,17 @@ export function formatCurrency(value) {
  * @returns {Object} Computed totals: { total_basic_pay, total_earnings, total_deductions, net_pay }
  */
 export function computePayroll(fields = {}) {
-  const toNum = (val) => {
-    if (val === "" || val === null || val === undefined) return 0;
-    const n = Number(val);
-    return Number.isNaN(n) ? 0 : n;
-  };
 
   const daily_pay = toNum(fields.daily_pay);
   const work_days = toNum(fields.work_days);
   const total_basic_pay = daily_pay * work_days;
+  const holiday_total = toNum(fields.holiday_days) * toNum(fields.holiday_pay);
+  const snwh_total = toNum(fields.snwh_days) * toNum(fields.snwh_pay);
 
   const total_earnings =
     total_basic_pay +
-    toNum(fields.holiday_pay) +
-    toNum(fields.snwh_pay) +
+    holiday_total +
+    snwh_total +
     toNum(fields.wellness_allowance) +
     toNum(fields.communication_allowance) +
     toNum(fields.birthday_allowance) +
