@@ -46,8 +46,12 @@ export default function Sidebar({ collapsed, onToggle }) {
             collapsed ? "gap-0" : "gap-2"
           )}
         >
-          <img src={logo} alt="JPMC" className="h-8 w-8 object-contain rounded-lg shrink-0" />
-          {!collapsed && <span className="truncate">JPMC Payroll</span>}
+          {!collapsed && (
+            <>
+              <img src={logo} alt="JPMC" className="h-8 w-8 object-contain rounded-lg shrink-0" />
+              <span className="truncate">JPMC Payroll</span>
+            </>
+          )}
         </Link>
         <button
           onClick={onToggle}
