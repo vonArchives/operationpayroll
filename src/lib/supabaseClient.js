@@ -4,10 +4,20 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables. " +
-    "Create a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
-  );
+  if (import.meta.env.PROD) {
+    throw new Error(
+      "Missing Supabase environment variables. " +
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before deploying."
+    );
+  } else {
+    console.warn(
+      "[Supabase] Missing env vars: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY. " +
+      "API calls will fail. Create a .env file to connect to your database."
+    );
+  }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl || "http://localhost:54321",
+  supabaseAnonKey || "noop"
+);
