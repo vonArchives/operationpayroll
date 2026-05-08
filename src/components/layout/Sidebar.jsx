@@ -13,10 +13,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const NAVY_BG = "#0d1829";
-const NAVY_LIGHT = "#1a2744";
-const NAVY_BORDER = "#1a2744";
-const BRAND_BLUE = "#3C72FC";
+const NAVY_BG = "#0B2757";
+const NAVY_LIGHT = "#0f3369";
+const NAVY_BORDER = "#0f3369";
+const BRAND_BLUE = "#1972F9";
+const BRAND_BLUE_LIGHT = "#518FFB";
 const WHITE = "#ffffff";
 const WHITE_60 = "rgba(255,255,255,0.6)";
 const WHITE_70 = "rgba(255,255,255,0.7)";

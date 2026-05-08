@@ -70,7 +70,7 @@ export default function Login() {
   return (
     <div className="flex min-h-svh font-['Jost',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif]">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-[300px] flex-col justify-between bg-gradient-to-br from-[#1E3A8A] via-[#2563EB] to-[#3C72FC] relative overflow-hidden p-10 pb-10 shadow-[8px_0_32px_rgba(0,0,0,0.45)]">
+      <aside className="hidden md:flex w-[300px] flex-col justify-between bg-gradient-to-br from-[#0B2757] via-[#1972F9] to-[#518FFB] relative overflow-hidden p-10 pb-10 shadow-[8px_0_32px_rgba(0,0,0,0.45)]">
         {/* Grid overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -149,7 +149,7 @@ export default function Login() {
         >
           {/* Eyebrow */}
           <div className="flex items-center gap-2 mb-2.5">
-            <div className="w-4 h-[1.5px] bg-[#3C72FC] rounded-full" />
+            <div className="w-4 h-[1.5px] bg-[#1972F9] rounded-full" />
             <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/55">
               Payroll System
             </span>
@@ -184,7 +184,7 @@ export default function Login() {
                   {...register("email", {
                     onChange: () => clearErrors("email"),
                   })}
-                  className="h-12 pl-10 pr-3 bg-white/[0.08] border-white/[0.15] text-sm font-normal text-white placeholder:text-white/30 rounded-md focus:border-[#3C72FC] focus:bg-[rgba(60,114,252,0.12)] focus:shadow-[0_0_0_3px_rgba(60,114,252,0.2)] focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200"
+                  className="h-12 pl-10 pr-3 bg-white/[0.08] border-white/[0.15] text-sm font-normal text-white placeholder:text-white/30 rounded-md focus:border-[#1972F9] focus:bg-[rgba(25,114,249,0.12)] focus:shadow-[0_0_0_3px_rgba(25,114,249,0.2)] focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200"
                   style={{
                     boxShadow: errors.email ? "0 0 0 3px rgba(207,46,46,0.15)" : undefined,
                     borderColor: errors.email ? "#CF2E2E" : undefined,
@@ -216,7 +216,7 @@ export default function Login() {
                   {...register("password", {
                     onChange: () => clearErrors("password"),
                   })}
-                  className="h-12 pl-10 pr-10 bg-white/[0.08] border-white/[0.15] text-sm font-normal text-white placeholder:text-white/30 rounded-md focus:border-[#3C72FC] focus:bg-[rgba(60,114,252,0.12)] focus:shadow-[0_0_0_3px_rgba(60,114,252,0.2)] focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200"
+                  className="h-12 pl-10 pr-10 bg-white/[0.08] border-white/[0.15] text-sm font-normal text-white placeholder:text-white/30 rounded-md focus:border-[#1972F9] focus:bg-[rgba(25,114,249,0.12)] focus:shadow-[0_0_0_3px_rgba(25,114,249,0.2)] focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200"
                   style={{
                     boxShadow: errors.password ? "0 0 0 3px rgba(207,46,46,0.15)" : undefined,
                     borderColor: errors.password ? "#CF2E2E" : undefined,
@@ -254,7 +254,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-5 mt-5 inline-flex items-center justify-center gap-2.5 text-[13px] font-bold uppercase tracking-[0.12em] text-white bg-[#3C72FC] border-none rounded-md cursor-pointer transition-all duration-200 hover:bg-[#2C5EE0] hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,114,252,0.4)] active:scale-[0.98] active:shadow-none disabled:opacity-75 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full py-3 px-5 mt-5 inline-flex items-center justify-center gap-2.5 text-[13px] font-bold uppercase tracking-[0.12em] text-white bg-[#1972F9] border-none rounded-md cursor-pointer transition-all duration-200 hover:bg-[#145fd1] hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(25,114,249,0.4)] active:scale-[0.98] active:shadow-none disabled:opacity-75 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isLoading ? (
                 <Loader2 className="h-[17px] w-[17px] animate-spin" />

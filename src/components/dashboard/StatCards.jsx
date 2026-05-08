@@ -44,7 +44,7 @@ export default function StatCards({ stats }) {
           return (
             <Card
               key={card.label}
-              className="overflow-hidden bg-[#3C72FC] border-[#3C72FC] text-white"
+              className="overflow-hidden bg-[#1972F9] border-[#1972F9] text-white"
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-white/80">

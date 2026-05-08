@@ -65,7 +65,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight text-[#1a2e4a]">Dashboard</h1>
         <p className="text-muted-foreground">
           Overview of your payroll for{" "}
-          <span className="font-medium text-[#3C72FC]">{payrollPeriod}</span>
+          <span className="font-medium text-[#1972F9]">{payrollPeriod}</span>
           <span
             className={`ml-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${payrollStatus.badgeStyle}`}
           >
@@ -125,7 +125,7 @@ export default function Dashboard() {
           <CardContent className="space-y-3">
             <Button
               variant="outline"
-              className="w-full justify-between group hover:bg-[#3C72FC] hover:text-white hover:border-[#3C72FC] transition-all"
+              className="w-full justify-between group hover:bg-[#1972F9] hover:text-white hover:border-[#1972F9] transition-all"
               onClick={() => navigate("/payroll")}
             >
               <span className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function Dashboard() {
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-between group hover:bg-[#3C72FC] hover:text-white hover:border-[#3C72FC] transition-all"
+              className="w-full justify-between group hover:bg-[#1972F9] hover:text-white hover:border-[#1972F9] transition-all"
               onClick={() => navigate("/employees")}
             >
               <span className="flex items-center gap-2">
