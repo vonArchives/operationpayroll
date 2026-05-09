@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { shapeEmployees } from "@/lib/payrollTransformer";
 import { usePayrollMutations } from "@/hooks/usePayrollMutations";
+import { useAuth } from "@/context/AuthContext";
 
 const now = new Date();
 
@@ -141,13 +142,18 @@ export function PayrollProvider({ children }) {
   const [mutationLoading, setMutationLoading] = useState(false);
   const [allPeriodData, setAllPeriodData] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { user } = useAuth(); 
 
   useEffect(() => {
+    if (!user) {
+      dispatch({ type: "SET_EMPLOYEES", payload: [] });
+      setAllPeriodData([]);
+      return;
+    }
+
     const fetchEmployees = async () => {
-      console.log("1. fetchEmployees function was called!"); // ADD THIS
       setLoading(true);
       try {
-        console.log("2. About to ask Supabase for data..."); // ADD THIS
         const { data, error } = await supabase
           .from("payroll_period")
           .select(`
@@ -207,7 +213,6 @@ export function PayrollProvider({ children }) {
               email
             )
           `);
-
         if (error) throw error;
 
         const monthSet = new Set();
@@ -232,13 +237,11 @@ export function PayrollProvider({ children }) {
         let activeMonthKey = state.selectedMonth;
         const monthExistsInDb = availableMonths.some((m) => m.key === activeMonthKey);
 
-        // If it doesn't exist (and we have data), fallback to the most recent available month
         if (!monthExistsInDb && availableMonths.length > 0) {
           activeMonthKey = availableMonths[0].key;
           dispatch({ type: "SWITCH_MONTH", payload: activeMonthKey });
         }
 
-        // Check if payroll was already sent for current month's periods
         const [selYear, selMonth] = activeMonthKey.split("-").map(Number);
         const monthPeriods = data.filter((p) => {
           if (!p.date_from) return false;
@@ -273,7 +276,7 @@ export function PayrollProvider({ children }) {
     };
 
     fetchEmployees();
-  }, [refreshKey]);
+  }, [refreshKey, user]);
 
   const refreshPayrollData = useCallback(() => setRefreshKey((k) => k + 1), []);
 

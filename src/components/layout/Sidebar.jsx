@@ -37,6 +37,15 @@ export default function Sidebar({ collapsed, onToggle }) {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === "admin";
 
+  /*
+   added this to clear entire react memory tree
+   and keep data from persisting between different logins
+  */
+  const handleLogoutClick = () => {
+    logout();
+    window.location.href = "/login"; 
+  };
+
   useEffect(() => {
     localStorage.setItem("sidebar_collapsed", JSON.stringify(collapsed));
   }, [collapsed]);
@@ -150,7 +159,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             </div>
           )}
           <button
-            onClick={logout}
+            onClick={handleLogoutClick}
             className="rounded-lg p-2.5 transition-colors"
             style={{ color: WHITE_60 }}
             onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}

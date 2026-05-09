@@ -10,19 +10,29 @@ const COOKIE_NAME = "jpmc_auth_token";
 const STORAGE_KEY = "jpmc_session_user";
 
 // ---- Cookie helpers ----------------------------------------------------------
-
-function setCookie(name, value, maxAgeSec) {
-  document.cookie = `${name}=${value}; Max-Age=${maxAgeSec}; Path=/; SameSite=Lax; Secure`;
-}
+const isSecure = window.location.hostname !== 'localhost';
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? match[1] : null;
 }
 
-function deleteCookie(name) {
-  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; Secure`;
+function setCookie(name, value, maxAgeSec) {
+  document.cookie = `${name}=${value}; Max-Age=${maxAgeSec}; Path=/; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
 }
+
+function deleteCookie(name) {
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
+}
+
+
+// function setCookie(name, value, maxAgeSec) {
+//   document.cookie = `${name}=${value}; Max-Age=${maxAgeSec}; Path=/; SameSite=Lax; Secure`;
+// }
+
+// function deleteCookie(name) {
+//   document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; Secure`;
+// }
 
 // ---- JWT helpers -------------------------------------------------------------
 
@@ -56,11 +66,7 @@ export function AuthProvider({ children }) {
             setUser(parsed);
             setIsAuthenticated(true);
             setSessionExpiresAt(payload.exp * 1000);
-
-            // Tell Supabase to use this token for all database requests
-            supabase.rest.headers.Authorization = `Bearer ${token}`;
             supabase.realtime.setAuth(token);
-
             return;
           } catch {
             localStorage.removeItem(STORAGE_KEY);
@@ -98,7 +104,6 @@ export function AuthProvider({ children }) {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("jpmc_session_expiry");
-    delete supabase.rest.headers.Authorization;
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);
@@ -145,7 +150,6 @@ export function AuthProvider({ children }) {
         const jwtExpiresAt = payload?.exp ? payload.exp * 1000 : expiresAt;
         setSessionExpiresAt(jwtExpiresAt);
         setCookie(COOKIE_NAME, token, Math.floor(SESSION_TIMEOUT_MS / 1000));
-        supabase.rest.headers.Authorization = `Bearer ${token}`;
         supabase.realtime.setAuth(token);
       } else {
         // Old edge function (no JWT): store expiry timestamp in localStorage
@@ -166,7 +170,6 @@ export function AuthProvider({ children }) {
     deleteCookie(COOKIE_NAME);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("jpmc_session_expiry");
-    delete supabase.rest.headers.Authorization;
     setUser(null);
     setIsAuthenticated(false);
     setSessionExpiresAt(null);
