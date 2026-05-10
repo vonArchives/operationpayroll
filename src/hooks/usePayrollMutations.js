@@ -370,7 +370,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
 
       if (empError) return { success: false, error: empError.message };
 
-      // --- NEW: Fetch all active cash advances ---
+      // Fetch all active cash advances ---
       const { data: activeLoans, error: loanError } = await supabase
         .from("cash_advances")
         .select("id, emp_id, total_amount, present_paid, per_period_deduction, start_date")
@@ -391,6 +391,36 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           };
         }
       });
+
+      // --- NEW: Fetch previous basic pay for all employees ---
+      // We order by date_to descending so the first record we see for an employee is their most recent!
+      const { data: prevPeriods } = await supabase
+        .from("payroll_period")
+        .select(`
+          emp_id,
+          date_to,
+          payroll_basicpay ( monthly_pay, daily_pay, work_days )
+        `)
+        .lt("date_to", period1From) 
+        .order("date_to", { ascending: false });
+
+      // Build a dictionary of the most recent pay rates
+      const prevBasicPayMap = {};
+      prevPeriods?.forEach((p) => {
+        // If we haven't logged this employee yet, this is their newest past record
+        if (!prevBasicPayMap[p.emp_id] && p.payroll_basicpay) {
+          // Supabase sometimes returns joins as an array or object depending on FK constraints
+          const bp = Array.isArray(p.payroll_basicpay) ? p.payroll_basicpay[0] : p.payroll_basicpay;
+          
+          if (bp) {
+            prevBasicPayMap[p.emp_id] = {
+              monthly_pay: Number(bp.monthly_pay) || 0,
+              daily_pay: Number(bp.daily_pay) || 0,
+              work_days: Number(bp.work_days) || 0,
+            };
+          }
+        }
+      });
       // -------------------------------------------
 
       const periods = [];
@@ -407,9 +437,16 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
 
       if (periodError) return { success: false, error: periodError.message };
 
-      const basicpayRows = insertedPeriods.map((p) => ({
-        pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
-      }));
+      // --- UPDATED: Inject the carried-over basic pay ---
+      const basicpayRows = insertedPeriods.map((p) => {
+        const prevPay = prevBasicPayMap[p.emp_id] || { monthly_pay: 0, daily_pay: 0, work_days: 0 };
+        return {
+          pr_period_id: p.pr_period_id, 
+          monthly_pay: prevPay.monthly_pay, 
+          daily_pay: prevPay.daily_pay, 
+          work_days: prevPay.work_days,
+        };
+      });
 
       const additionsRows = insertedPeriods.map((p) => ({
         pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0,
@@ -499,7 +536,33 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
          remaining: Number(activeLoans[0].total_amount) - Number(activeLoans[0].present_paid)
        };
     }
-    // -------------------------------------------
+
+    // --- NEW: Fetch previous basic pay for this specific employee ---
+    const { data: prevPeriods } = await supabase
+      .from("payroll_period")
+      .select(`
+        date_to,
+        payroll_basicpay ( monthly_pay, daily_pay, work_days )
+      `)
+      .eq("emp_id", empId)
+      .lt("date_to", period1From)
+      .order("date_to", { ascending: false })
+      .limit(1); // We only need the single most recent period
+
+    let prevBasicPay = { monthly_pay: 0, daily_pay: 0, work_days: 0 };
+    if (prevPeriods && prevPeriods.length > 0 && prevPeriods[0].payroll_basicpay) {
+        const bp = Array.isArray(prevPeriods[0].payroll_basicpay) 
+          ? prevPeriods[0].payroll_basicpay[0] 
+          : prevPeriods[0].payroll_basicpay;
+        if (bp) {
+            prevBasicPay = {
+              monthly_pay: Number(bp.monthly_pay) || 0,
+              daily_pay: Number(bp.daily_pay) || 0,
+              work_days: Number(bp.work_days) || 0,
+            };
+        }
+    }
+    // ----------------------------------------------------------------
 
     const periods = [
       { emp_id: empId, date_from: period1From, date_to: period1To, status: "Pending" },
@@ -513,8 +576,12 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
 
     if (periodError) return { success: false, error: periodError.message };
 
+    // --- UPDATED: Inject the carried-over basic pay ---
     const basicpayRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
+      pr_period_id: p.pr_period_id, 
+      monthly_pay: prevBasicPay.monthly_pay, 
+      daily_pay: prevBasicPay.daily_pay, 
+      work_days: prevBasicPay.work_days,
     }));
 
     const additionsRows = insertedPeriods.map((p) => ({
