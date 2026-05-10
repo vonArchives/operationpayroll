@@ -16,7 +16,8 @@ const MODERATOR_EDITABLE_FIELDS = [
  */
 export function useRolePermissions() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const currentRole = user?.role?.toLowerCase();
+  const isAdmin = currentRole === 'admin' || currentRole === 'devadmin';
   const isModerator = user?.role === "moderator";
 
   return {

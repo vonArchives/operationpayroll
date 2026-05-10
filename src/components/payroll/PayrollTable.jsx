@@ -136,6 +136,7 @@ export default function PayrollTable({
           <TableRow>
             {showBasic && (
               <>
+                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">MonthlyPay</TableHead>}
                 {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Daily</TableHead>}
                 <TableHead className="bg-blue-50 text-xs text-blue-700">Days</TableHead>
                 {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Total</TableHead>}
@@ -184,7 +185,7 @@ export default function PayrollTable({
                 </TableCell>
                 {showBasic && (
                   <>
-                    {/* FIXED: Optional chaining used just to be safe */}
+                    {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll.monthly_pay)}</TableCell>}
                     {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll?.daily_pay)}</TableCell>}
                     <TableCell>{payroll?.work_days || 0}</TableCell>
                     {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
@@ -330,6 +331,7 @@ export default function PayrollTable({
               <TableCell className="sticky left-0 z-10 bg-muted">TOTALS</TableCell>
               {showBasic && (
                 <>
+                  {perms.canViewDailyRate && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
                   {perms.canViewDailyRate && <TableCell>{formatCurrency(totals?.daily_pay)}</TableCell>}
                   <TableCell>{totals?.work_days || 0}</TableCell>
                   {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals?.total_basic_pay)}</TableCell>}

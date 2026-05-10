@@ -150,6 +150,7 @@ export default function PayrollRun() {
 
   const totals = useMemo(() => {
     const t = {
+      monthly_pay: 0,
       daily_pay: 0, work_days: 0, total_basic_pay: 0, holiday_days: 0, holiday_pay: 0,
       snwh_days: 0, snwh_pay: 0, wellness_allowance: 0, communication_allowance: 0,
       birthday_allowance: 0, commission: 0, allowance: 0, bonuses: 0,
@@ -170,6 +171,7 @@ export default function PayrollRun() {
         c = computePayroll(p);
       }
 
+      t.monthly_pay += p.monthly_pay || 0;
       t.daily_pay += p.daily_pay || 0;
       t.work_days += p.work_days || 0;
       t.total_basic_pay += c.total_basic_pay || 0;

@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const schema = z.object({
+  monthly_pay: z.coerce.number().min(0, "Cannot be negative"),
   daily_pay: z.coerce.number().min(0, "Cannot be negative"),
   work_days: z.coerce.number().int().min(0, "Cannot be negative").max(31, "Max 31 days"),
   holiday_days: z.coerce.number().min(0),
@@ -79,33 +80,69 @@ export default function EditModal({ employee, open, onClose }) {
 
   const watched = useWatch({ control });
 
-  // Auto-compute default holiday/SNWH RATES (not totals) when days are added
+  // Auto-compute Daily Rate, Holiday, and SNWH Pay
+  // Auto-compute Daily Rate, Holiday, SNWH Pay, and PhilHealth
   const hasComputedRef = useRef(false);
+  const prevMPayRef = useRef(null); // <-- NEW: Tracks salary changes for PhilHealth
+
   useEffect(() => {
     // Skip the first run to preserve existing DB values on modal open
     if (!hasComputedRef.current) {
       hasComputedRef.current = true;
+      // Initialize the ref with the starting monthly pay so it doesn't trigger on first open
+      prevMPayRef.current = Number(watched.monthly_pay) || 0;
       return;
     }
 
-    const dailyPay = Number(watched.daily_pay) || 0;
+    const mPay = Number(watched.monthly_pay) || 0;
+    const wDays = Number(watched.work_days) || 0;
+    let currentDailyPay = Number(watched.daily_pay) || 0;
+
+    // --- NEW: Auto-compute PhilHealth ONLY when Monthly Pay changes ---
+    if (prevMPayRef.current !== mPay) {
+      const autoPhilHealth = mPay > 0 ? Number((((mPay / 2) * 0.05) / 2).toFixed(2)) : 0;
+      setValue("philhealth", autoPhilHealth, { shouldValidate: true });
+      prevMPayRef.current = mPay; // Save the new salary state
+    }
+    // ------------------------------------------------------------------
+
+    // 1. Auto-compute Daily Pay based on Monthly Pay and Work Days
+    if (mPay > 0 && wDays > 0) {
+      // Bimonthly fix: Divide by 2 first
+      const calculatedDaily = Number(((mPay / 2) / wDays).toFixed(2));
+      if (calculatedDaily !== currentDailyPay) {
+        setValue("daily_pay", calculatedDaily, { shouldValidate: true });
+        currentDailyPay = calculatedDaily; // Update local variable for next steps
+      }
+    } else if ((mPay === 0 || wDays === 0) && currentDailyPay !== 0) {
+      setValue("daily_pay", 0, { shouldValidate: true });
+      currentDailyPay = 0;
+    }
+
+    // 2. Auto-compute default holiday/SNWH RATES when days are added
     const holidayDays = Number(watched.holiday_days) || 0;
     const snwhDays = Number(watched.snwh_days) || 0;
-
-    // Grab the current input values without triggering infinite re-renders
     const currentHolidayPay = Number(getValues("holiday_pay")) || 0;
     const currentSnwhPay = Number(getValues("snwh_pay")) || 0;
 
     // Only auto-fill the standard rate if they entered days AND the pay rate is currently 0.
     if (holidayDays > 0 && currentHolidayPay === 0) {
-      setValue("holiday_pay", Number(dailyPay.toFixed(2)), { shouldValidate: true });
+      setValue("holiday_pay", Number(currentDailyPay.toFixed(2)), { shouldValidate: true });
     }
     
     if (snwhDays > 0 && currentSnwhPay === 0) {
-      setValue("snwh_pay", Number((dailyPay * 0.30).toFixed(2)), { shouldValidate: true });
+      setValue("snwh_pay", Number((currentDailyPay * 0.30).toFixed(2)), { shouldValidate: true });
     }
     
-  }, [watched.daily_pay, watched.holiday_days, watched.snwh_days, setValue, getValues]);
+  }, [
+    watched.monthly_pay, 
+    watched.work_days, 
+    watched.daily_pay, 
+    watched.holiday_days, 
+    watched.snwh_days, 
+    setValue, 
+    getValues
+  ]);
 
   const live = useMemo(() => computePayroll(watched), [watched]);
 
@@ -137,24 +174,26 @@ export default function EditModal({ employee, open, onClose }) {
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-700">
                     Basic Pay
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="daily_pay">Daily Pay</Label>
-                        {perms.canEditField("daily_pay") ? (
+                      <Label htmlFor="monthly_pay">Monthly Pay</Label>
+                        {perms.canEditField("monthly_pay") ? (
                         <Input
-                          id="daily_pay"
+                          id="monthly_pay"
                           type="number"
                           step="0.01"
-                          {...register("daily_pay")}
-                          className={cn(errors.daily_pay && "border-danger")}
+                          {...register("monthly_pay")}
+                          className={cn(errors.monthly_pay && "border-danger")}
                         />
                       ) : (
-                        <ReadOnlyInput id="daily_pay" value={employee?.[payrollKey]?.daily_pay} />
+                        <ReadOnlyInput id="monthly_pay" value={employee?.[payrollKey]?.monthly_pay} />
                       )}
-                      {errors.daily_pay && (
-                        <p className="text-xs text-danger">{errors.daily_pay.message}</p>
+                      {errors.monthly_pay && (
+                        <p className="text-xs text-danger">{errors.monthly_pay.message}</p>
                       )}
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="work_days">Work Days</Label>
                         {perms.canEditField("work_days") ? (
@@ -171,6 +210,21 @@ export default function EditModal({ employee, open, onClose }) {
                         <p className="text-xs text-danger">{errors.work_days.message}</p>
                       )}
                     </div>
+
+                    {/* Daily Rate is now strictly Read-Only and Auto-Calculated */}
+                    <div className="space-y-2">
+                      <Label htmlFor="daily_pay" className="text-muted-foreground">Daily Rate (Auto)</Label>
+                      <Input
+                        id="daily_pay"
+                        type="number"
+                        step="0.01"
+                        {...register("daily_pay")}
+                        readOnly
+                        tabIndex={-1}
+                        className="bg-muted cursor-not-allowed focus-visible:ring-0"
+                      />
+                    </div>
+
                   </div>
                 </div>
 

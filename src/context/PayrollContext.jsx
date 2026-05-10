@@ -265,7 +265,7 @@ export function PayrollProvider({ children }) {
 
         dispatch({ type: "SET_PAYROLL_SENT", payload: { period1: sent1, period2: sent2 } });
 
-        const shaped = shapeEmployees(data, state.selectedMonth);
+        const shaped = shapeEmployees(data, activeMonthKey);
         dispatch({ type: "SET_EMPLOYEES", payload: shaped });
       } catch (err) {
         setError(err.message);

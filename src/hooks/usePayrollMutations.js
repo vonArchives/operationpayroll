@@ -66,10 +66,24 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
           additionsFields.holiday_pay = holidayDays * dailyPayNum;
           updatedFields.holiday_pay = additionsFields.holiday_pay;
         }
-        if (updatedFields.snwh_days !== undefined && updatedFields.snwh_pay === undefined) {
-          const snwhDays = Number(updatedFields.snwh_days) || 0;
-          additionsFields.snwh_pay = snwhDays * (dailyPayNum * 0.30);
-          updatedFields.snwh_pay = additionsFields.snwh_pay;
+        
+        // --- NEW: Auto-compute PhilHealth if monthly_pay changes ---
+        const monthlyPay = updatedFields.monthly_pay ?? empPayroll.monthly_pay ?? 0;
+        const monthlyPayNum = Number(monthlyPay) || 0;
+
+        if (updatedFields.monthly_pay !== undefined && updatedFields.philhealth === undefined) {
+          // If monthly pay was edited, recalculate PhilHealth
+          deductionsFields.phil_health = ((monthlyPayNum / 2) * 0.05) / 2;
+          updatedFields.philhealth = deductionsFields.phil_health; 
+        }
+
+        const workDays = updatedFields.work_days ?? empPayroll.work_days ?? 0;
+        const workDaysNum = Number(workDays) || 0;
+
+        if ((updatedFields.monthly_pay !== undefined || updatedFields.work_days !== undefined) && updatedFields.daily_pay === undefined) {
+          // Bimonthly fix: Divide monthly_pay by 2 first, then divide by work_days
+          basicpayFields.daily_pay = (monthlyPayNum > 0 && workDaysNum > 0) ? ((monthlyPayNum / 2) / workDaysNum) : 0;
+          updatedFields.daily_pay = basicpayFields.daily_pay;
         }
 
         // 1. Sanitize numeric inputs only
@@ -366,7 +380,8 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       // Fetch all employees
       const { data: emps, error: empError } = await supabase
         .from("employee")
-        .select("emp_id");
+        .select("emp_id")
+        .neq("role", "devAdmin");
 
       if (empError) return { success: false, error: empError.message };
 
@@ -440,11 +455,14 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       // --- UPDATED: Inject the carried-over basic pay ---
       const basicpayRows = insertedPeriods.map((p) => {
         const prevPay = prevBasicPayMap[p.emp_id] || { monthly_pay: 0, daily_pay: 0, work_days: 0 };
+        const mPay = Number(prevPay.monthly_pay) || 0;
+        const wDays = Number(prevPay.work_days) || 0;
+
         return {
           pr_period_id: p.pr_period_id, 
-          monthly_pay: prevPay.monthly_pay, 
-          daily_pay: prevPay.daily_pay, 
-          work_days: prevPay.work_days,
+          monthly_pay: mPay,
+          daily_pay: (mPay > 0 && wDays > 0) ? ((mPay / 2) / wDays) : 0, 
+          work_days: wDays,
         };
       });
 
@@ -461,23 +479,34 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       // Sort to guarantee Period 1 is processed before Period 2
       insertedPeriods.sort((a, b) => a.date_to.localeCompare(b.date_to));
 
-      // --- NEW: Calculate Deductions using the Running Balance ---
+      // --- UPDATED: Calculate Deductions (Cash Advance + PhilHealth) ---
       const deductionsRows = insertedPeriods.map((p) => {
         let autoDeduct = 0;
         const loan = loanMap[p.emp_id];
         
         if (loan && loan.remaining > 0) {
-          // Bulletproof string comparison avoids timezone drift
           if (loan.start_date <= p.date_to) {
               autoDeduct = Math.min(Number(loan.per_period_deduction), loan.remaining);
               loan.remaining -= autoDeduct; 
           }
         }
+        // Fetch the carried-over monthly pay for this employee
+        const prevPay = prevBasicPayMap[p.emp_id] || { monthly_pay: 0 };
+        const monthlyPayNum = Number(prevPay.monthly_pay) || 0;
+
+        // Apply the PhilHealth formula
+        const autoPhilHealth = monthlyPayNum > 0 
+          ? ((monthlyPayNum / 2) * 0.05) / 2 
+          : 0;
 
         return {
           pr_period_id: p.pr_period_id, 
           cash_advance: autoDeduct,
-          sss: 0, phil_health: 0, pag_ibig: 0, hmo: 0, others: 0,
+          sss: 0, 
+          phil_health: autoPhilHealth, 
+          pag_ibig: 0, 
+          hmo: 0,
+          others: 0,
         };
       });
       // ---------------------------------------------------------
@@ -577,12 +606,17 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     if (periodError) return { success: false, error: periodError.message };
 
     // --- UPDATED: Inject the carried-over basic pay ---
-    const basicpayRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, 
-      monthly_pay: prevBasicPay.monthly_pay, 
-      daily_pay: prevBasicPay.daily_pay, 
-      work_days: prevBasicPay.work_days,
-    }));
+    const basicpayRows = insertedPeriods.map((p) => {
+      const mPay = Number(prevBasicPay.monthly_pay) || 0;
+      const wDays = Number(prevBasicPay.work_days) || 0;
+
+      return {
+        pr_period_id: p.pr_period_id, 
+        monthly_pay: mPay, 
+        daily_pay: (mPay > 0 && wDays > 0) ? ((mPay / 2) / wDays) : 0,
+        work_days: wDays,
+      }
+    });
 
     const additionsRows = insertedPeriods.map((p) => ({
       pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0, 
@@ -597,22 +631,32 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     // Sort to guarantee Period 1 is processed before Period 2
     insertedPeriods.sort((a, b) => a.date_to.localeCompare(b.date_to));
 
-    // --- NEW: Calculate Deductions ---
+    // --- UPDATED: Calculate Deductions (Cash Advance + PhilHealth) ---
     const deductionsRows = insertedPeriods.map((p) => {
       let autoDeduct = 0;
       
       if (loan && loan.remaining > 0) {
-        // Bulletproof string comparison avoids timezone drift
         if (loan.start_date <= p.date_to) {
             autoDeduct = Math.min(Number(loan.per_period_deduction), loan.remaining);
             loan.remaining -= autoDeduct; 
         }
       }
 
+      const monthlyPayNum = Number(prevBasicPay.monthly_pay) || 0;
+
+      // Apply the PhilHealth formula
+      const autoPhilHealth = monthlyPayNum > 0 
+        ? ((monthlyPayNum / 2) * 0.05) / 2 
+        : 0;
+
       return {
         pr_period_id: p.pr_period_id, 
         cash_advance: autoDeduct, 
-        sss: 0, phil_health: 0, pag_ibig: 0, hmo: 0, others: 0,
+        sss: 0, 
+        phil_health: autoPhilHealth, 
+        pag_ibig: 0, 
+        hmo: 0, 
+        others: 0,
       };
     });
     // ---------------------------------
