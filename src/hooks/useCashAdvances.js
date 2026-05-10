@@ -50,7 +50,7 @@ export function useCashAdvances() {
       const { data, error } = await supabase
         .from("employee")
         .select("emp_id, first_name, last_name, position")
-        .eq("status", "active")
+        .eq("status", "Active")
         .order("last_name", { ascending: true });
 
       if (error) throw error;
