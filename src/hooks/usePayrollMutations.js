@@ -344,76 +344,121 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
   );
 
   const createPayrollMonth = useCallback(async (yearMonth) => {
-    const [year, month] = yearMonth.split("-").map(Number);
+      const [year, month] = yearMonth.split("-").map(Number);
 
-    const period1From = `${yearMonth}-01`;
-    const period1To = `${yearMonth}-15`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const period2From = `${yearMonth}-16`;
-    const period2To = `${yearMonth}-${lastDay}`;
+      const period1From = `${yearMonth}-01`;
+      const period1To = `${yearMonth}-15`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const period2From = `${yearMonth}-16`;
+      const period2To = `${yearMonth}-${lastDay}`;
 
-    const { data: existing } = await supabase
-      .from("payroll_period")
-      .select("pr_period_id")
-      .eq("date_from", period1From)
-      .limit(1);
+      // Check if payroll already exists
+      const { data: existing } = await supabase
+        .from("payroll_period")
+        .select("pr_period_id")
+        .eq("date_from", period1From)
+        .limit(1);
 
-    if (existing && existing.length > 0) {
-      return { success: false, error: "Payroll for this month already exists." };
-    }
+      if (existing && existing.length > 0) {
+        return { success: false, error: "Payroll for this month already exists." };
+      }
 
-    const { data: emps, error: empError } = await supabase
-      .from("employee")
-      .select("emp_id");
+      // Fetch all employees
+      const { data: emps, error: empError } = await supabase
+        .from("employee")
+        .select("emp_id");
 
-    if (empError) return { success: false, error: empError.message };
+      if (empError) return { success: false, error: empError.message };
 
-    const periods = [];
-    emps.forEach((emp) => {
-      periods.push({ emp_id: emp.emp_id, date_from: period1From, date_to: period1To, status: "Pending" });
-      periods.push({ emp_id: emp.emp_id, date_from: period2From, date_to: period2To, status: "Pending" });
-    });
+      // --- NEW: Fetch all active cash advances ---
+      const { data: activeLoans, error: loanError } = await supabase
+        .from("cash_advances")
+        .select("id, emp_id, total_amount, present_paid, per_period_deduction, start_date")
+        .eq("status", "active")
+        .lte("start_date", period2To) // Only fetch loans that started before the end of this month
+        .order("created_at", { ascending: true });
 
-    const { data: insertedPeriods, error: periodError } = await supabase
-      .from("payroll_period")
-      .insert(periods)
-      .select("pr_period_id");
+      if (loanError) return { success: false, error: loanError.message };
 
-    if (periodError) return { success: false, error: periodError.message };
+      // Create a memory map of loans and their running balances
+      const loanMap = {};
+      activeLoans?.forEach(loan => {
+        // Only grab their oldest active loan if they have multiple
+        if (!loanMap[loan.emp_id]) {
+          loanMap[loan.emp_id] = {
+            ...loan,
+            remaining: Number(loan.total_amount) - Number(loan.present_paid)
+          };
+        }
+      });
+      // -------------------------------------------
 
-    const basicpayRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
-    }));
+      const periods = [];
+      emps.forEach((emp) => {
+        periods.push({ emp_id: emp.emp_id, date_from: period1From, date_to: period1To, status: "Pending" });
+        periods.push({ emp_id: emp.emp_id, date_from: period2From, date_to: period2To, status: "Pending" });
+      });
 
-    const additionsRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0,
-      snwh_pay: 0, wellness_alw: 0, comms_alw: 0, birthday_alw: 0, commission: 0,
-      allowance: 0, bonus: 0, thirteenth_mp: 0,
-    }));
+      // IMPORTANT: Added emp_id and date_to to the select so we can map deductions properly
+      const { data: insertedPeriods, error: periodError } = await supabase
+        .from("payroll_period")
+        .insert(periods)
+        .select("pr_period_id, emp_id, date_to"); 
 
-    const deductionsRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, cash_advance: 0, sss: 0, phil_health: 0,
-      pag_ibig: 0, hmo: 0, others: 0,
-    }));
+      if (periodError) return { success: false, error: periodError.message };
 
-    const remarksRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, holiday_remarks: "", snwh_remarks: "", commission_remarks: "",
-    }));
+      const basicpayRows = insertedPeriods.map((p) => ({
+        pr_period_id: p.pr_period_id, monthly_pay: 0, daily_pay: 0, work_days: 0,
+      }));
 
-    const [basicpayResult, additionsResult, deductionsResult, remarksResult] = await Promise.all([
-      supabase.from("payroll_basicpay").insert(basicpayRows),
-      supabase.from("payroll_additions").insert(additionsRows),
-      supabase.from("payroll_deductions").insert(deductionsRows),
-      supabase.from("payroll_remarks").insert(remarksRows),
-    ]);
+      const additionsRows = insertedPeriods.map((p) => ({
+        pr_period_id: p.pr_period_id, holiday_days: 0, holiday_pay: 0, snwh_days: 0,
+        snwh_pay: 0, wellness_alw: 0, comms_alw: 0, birthday_alw: 0, commission: 0,
+        allowance: 0, bonus: 0, thirteenth_mp: 0,
+      }));
 
-    if (basicpayResult.error) return { success: false, error: basicpayResult.error.message };
-    if (additionsResult.error) return { success: false, error: additionsResult.error.message };
-    if (deductionsResult.error) return { success: false, error: deductionsResult.error.message };
-    if (remarksResult.error) return { success: false, error: remarksResult.error.message };
+      const remarksRows = insertedPeriods.map((p) => ({
+        pr_period_id: p.pr_period_id, holiday_remarks: "", snwh_remarks: "", commission_remarks: "",
+      }));
 
-    return { success: true };
-  }, []);
+      // Sort to guarantee Period 1 is processed before Period 2
+      insertedPeriods.sort((a, b) => a.date_to.localeCompare(b.date_to));
+
+      // --- NEW: Calculate Deductions using the Running Balance ---
+      const deductionsRows = insertedPeriods.map((p) => {
+        let autoDeduct = 0;
+        const loan = loanMap[p.emp_id];
+        
+        if (loan && loan.remaining > 0) {
+          // Bulletproof string comparison avoids timezone drift
+          if (loan.start_date <= p.date_to) {
+              autoDeduct = Math.min(Number(loan.per_period_deduction), loan.remaining);
+              loan.remaining -= autoDeduct; 
+          }
+        }
+
+        return {
+          pr_period_id: p.pr_period_id, 
+          cash_advance: autoDeduct,
+          sss: 0, phil_health: 0, pag_ibig: 0, hmo: 0, others: 0,
+        };
+      });
+      // ---------------------------------------------------------
+
+      const [basicpayResult, additionsResult, deductionsResult, remarksResult] = await Promise.all([
+        supabase.from("payroll_basicpay").insert(basicpayRows),
+        supabase.from("payroll_additions").insert(additionsRows),
+        supabase.from("payroll_deductions").insert(deductionsRows),
+        supabase.from("payroll_remarks").insert(remarksRows),
+      ]);
+
+      if (basicpayResult.error) return { success: false, error: basicpayResult.error.message };
+      if (additionsResult.error) return { success: false, error: additionsResult.error.message };
+      if (deductionsResult.error) return { success: false, error: deductionsResult.error.message };
+      if (remarksResult.error) return { success: false, error: remarksResult.error.message };
+
+      return { success: true };
+    }, []);
 
   const generatePayrollForNewEmployee = useCallback(async (empId) => {
     const now = new Date();
@@ -437,6 +482,25 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       return { success: true, skipped: true };
     }
 
+    // --- NEW: Fetch their specific active loan ---
+    const { data: activeLoans } = await supabase
+      .from("cash_advances")
+      .select("total_amount, present_paid, per_period_deduction, start_date")
+      .eq("emp_id", empId)
+      .eq("status", "active")
+      .lte("start_date", period2To)
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    let loan = null;
+    if (activeLoans && activeLoans.length > 0) {
+       loan = {
+         ...activeLoans[0],
+         remaining: Number(activeLoans[0].total_amount) - Number(activeLoans[0].present_paid)
+       };
+    }
+    // -------------------------------------------
+
     const periods = [
       { emp_id: empId, date_from: period1From, date_to: period1To, status: "Pending" },
       { emp_id: empId, date_from: period2From, date_to: period2To, status: "Pending" }
@@ -445,7 +509,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
     const { data: insertedPeriods, error: periodError } = await supabase
       .from("payroll_period")
       .insert(periods)
-      .select("pr_period_id");
+      .select("pr_period_id, date_to"); // ADDED date_to
 
     if (periodError) return { success: false, error: periodError.message };
 
@@ -459,15 +523,32 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       allowance: 0, bonus: 0, thirteenth_mp: 0,
     }));
 
-    const deductionsRows = insertedPeriods.map((p) => ({
-      pr_period_id: p.pr_period_id, cash_advance: 0, sss: 0, phil_health: 0, 
-      pag_ibig: 0, hmo: 0, others: 0,
-    }));
-
-    // NEW: Initialize empty remarks rows for the new employee
     const remarksRows = insertedPeriods.map((p) => ({
       pr_period_id: p.pr_period_id, holiday_remarks: "", snwh_remarks: "", commission_remarks: "",
     }));
+
+    // Sort to guarantee Period 1 is processed before Period 2
+    insertedPeriods.sort((a, b) => a.date_to.localeCompare(b.date_to));
+
+    // --- NEW: Calculate Deductions ---
+    const deductionsRows = insertedPeriods.map((p) => {
+      let autoDeduct = 0;
+      
+      if (loan && loan.remaining > 0) {
+        // Bulletproof string comparison avoids timezone drift
+        if (loan.start_date <= p.date_to) {
+            autoDeduct = Math.min(Number(loan.per_period_deduction), loan.remaining);
+            loan.remaining -= autoDeduct; 
+        }
+      }
+
+      return {
+        pr_period_id: p.pr_period_id, 
+        cash_advance: autoDeduct, 
+        sss: 0, phil_health: 0, pag_ibig: 0, hmo: 0, others: 0,
+      };
+    });
+    // ---------------------------------
 
     const [bRes, aRes, dRes, rRes] = await Promise.all([
       supabase.from("payroll_basicpay").insert(basicpayRows),
