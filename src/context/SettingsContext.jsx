@@ -25,7 +25,6 @@ export function SettingsProvider({ children }) {
       try {
         console.log(`2. Attempting to verify old password for: ${user.email}`);
         
-        // Step 1: Verify Current Password
         const { data: verifyData, error: verifyError } = await supabase.auth.signInWithPassword({
           email: user.email,
           password: currentPassword,
