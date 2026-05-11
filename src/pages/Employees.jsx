@@ -281,10 +281,15 @@ data = data.filter(
               employee={selectedEmployee}
               period={payrollPeriod}
               payrollData={selectedEmployee?.[payrollKey]}
-              payrollDate={selectedEmployee?.[payrollKey]?.date_to
-                ? new Date(selectedEmployee[payrollKey].date_to + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                : payrollPeriod
-              }
+              payrollDate={(() => {
+                const payroll = selectedEmployee?.[payrollKey];
+                if (!payroll?.date_to) return payrollPeriod;
+                const date = new Date(payroll.date_to + "T00:00:00");
+                const month = date.toLocaleDateString("en-US", { month: "long" });
+                const year = date.getFullYear();
+                const range = currentPeriod === "period1" ? "1–15" : "16–30";
+                return `${month} ${range}, ${year}`;
+              })()}
             />
           </div>
         </DialogContent>
