@@ -59,7 +59,7 @@ function TableSkeleton() {
 }
 
 export default function Employees() {
-  const { employees, payrollPeriod, loading, error } = usePayroll();
+  const { employees, payrollPeriod, currentPeriod, loading, error } = usePayroll();
   const { isAdmin, canViewPayslip } = useRolePermissions();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
@@ -68,7 +68,7 @@ export default function Employees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const payrollKey = `payroll_${payrollPeriod}`;
+  const payrollKey = `payroll_${currentPeriod}`;
 
   const activeEmployeesForPeriod = employees.filter((employee) => {
     return employee[payrollKey] !== undefined && employee[payrollKey] !== null;
@@ -280,8 +280,9 @@ data = data.filter(
             <PayslipCard
               employee={selectedEmployee}
               period={payrollPeriod}
-              payrollDate={selectedEmployee?.payroll_period1?.date_to
-                ? new Date(selectedEmployee.payroll_period1.date_to + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+              payrollData={selectedEmployee?.[payrollKey]}
+              payrollDate={selectedEmployee?.[payrollKey]?.date_to
+                ? new Date(selectedEmployee[payrollKey].date_to + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
                 : payrollPeriod
               }
             />
