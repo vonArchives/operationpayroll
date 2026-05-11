@@ -123,7 +123,9 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
         const val = payroll[key];
         const remarks = payroll[`${key}_remarks`];
         if (!val || Number(val) === 0) return "";
-        return `<div class="row"><span>${label}</span><span>${isDays ? val : formatCurrency(val)}</span></div>${remarks ? `<div class="row" style="font-size:11px;color:#94a3b8;padding-left:12px;"><span>${remarks}</span><span></span></div>` : ""}`;
+        const valueStr = isDays ? val : formatCurrency(val);
+        const remarkStr = remarks ? ` <span style="font-size:11px;color:#94a3b8;font-weight:400;">(${remarks})</span>` : "";
+        return `<div class="row"><span>${label}</span><span>${valueStr}${remarkStr}</span></div>`;
       }).join("")}
       <div class="row total"><span>Total Earnings</span><span>${formatCurrency(computed.total_earnings)}</span></div>
     </div>
@@ -267,16 +269,16 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
           const remarks = payroll[`${key}_remarks`];
           if (!val || Number(val) === 0) return null;
           return (
-            <div key={key}>
-              <div className="flex justify-between text-sm">
-                <span className="text-text-primary">{label}</span>
-                <span className="font-medium text-text-primary">{isDays ? val : formatCurrency(val)}</span>
-              </div>
-              {remarks && (
-                <div className="pl-4 text-xs text-muted-foreground">
-                  {remarks}
-                </div>
-              )}
+            <div key={key} className="flex justify-between text-sm">
+              <span className="text-text-primary">{label}</span>
+              <span className="font-medium text-text-primary">
+                {isDays ? val : formatCurrency(val)}
+                {remarks && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    ({remarks})
+                  </span>
+                )}
+              </span>
             </div>
           );
         })}
