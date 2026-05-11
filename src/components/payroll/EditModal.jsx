@@ -336,30 +336,30 @@ export default function EditModal({ employee, open, onClose }) {
             </ScrollArea>
 
             {/* Right: live summary */}
-            <div className="w-full shrink-0 lg:w-64">
-              <div className="sticky top-0 rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="w-full shrink-0 lg:w-80">
+              <div className="sticky top-0 rounded-xl border bg-card p-6 shadow-sm">
+                <h3 className="mb-6 text-base font-semibold uppercase tracking-wide text-muted-foreground">
                   Live Summary
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-base">
                     <span className="text-muted-foreground">Basic Pay</span>
                     <span className="font-medium">{formatCurrency(live.total_basic_pay)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-base">
                     <span className="text-muted-foreground">Earnings</span>
                     <span className="font-medium">{formatCurrency(live.total_earnings)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-base">
                     <span className="text-muted-foreground">Deductions</span>
                     <span className="font-medium">{formatCurrency(live.total_deductions)}</span>
                   </div>
                   <Separator />
-                  <div className="rounded-lg bg-primary/5 p-3 text-center">
-                    <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                  <div className="rounded-lg bg-primary/5 p-4 text-center">
+                    <p className="text-sm font-medium uppercase tracking-wide text-primary">
                       Net Pay
                     </p>
-                    <p className="mt-1 text-2xl font-bold text-primary">
+                    <p className="mt-1 text-3xl font-bold text-primary">
                       {formatCurrency(live.net_pay)}
                     </p>
                   </div>
