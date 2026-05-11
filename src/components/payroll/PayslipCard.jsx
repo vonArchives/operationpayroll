@@ -121,11 +121,13 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
       <p class="section-title">Earnings</p>
       ${EARNINGS_KEYS.map(({ key, label, isDays }) => {
         const val = payroll[key];
-        const remarks = payroll[`${key}_remarks`];
         if (!val || Number(val) === 0) return "";
         const valueStr = isDays ? val : formatCurrency(val);
-        const remarkStr = remarks ? ` <span style="font-size:11px;color:#94a3b8;font-weight:400;">(${remarks})</span>` : "";
-        return `<div class="row"><span>${label}</span><span>${valueStr}${remarkStr}</span></div>`;
+        if (key === "commission") {
+          const remarks = payroll.commission_remarks;
+          return `<div class="row"><span>${label}</span></div>${remarks ? `<div class="row" style="padding-left:12px;font-size:11px;color:#94a3b8;"><span>${remarks}</span></div>` : ""}<div class="row" style="justify-content:flex-end;"><span>${valueStr}</span></div>`;
+        }
+        return `<div class="row"><span>${label}</span><span>${valueStr}</span></div>`;
       }).join("")}
       <div class="row total"><span>Total Earnings</span><span>${formatCurrency(computed.total_earnings)}</span></div>
     </div>
@@ -266,18 +268,26 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
         <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Earnings</h3>
         {EARNINGS_KEYS.map(({ key, label, isDays }) => {
           const val = payroll[key];
-          const remarks = payroll[`${key}_remarks`];
           if (!val || Number(val) === 0) return null;
+          if (key === "commission") {
+            const remarks = payroll.commission_remarks;
+            return (
+              <div key={key} className="space-y-1">
+                <div className="text-sm text-text-primary">{label}</div>
+                {remarks && (
+                  <div className="pl-3 text-xs text-muted-foreground">{remarks}</div>
+                )}
+                <div className="flex justify-end text-sm font-medium text-text-primary">
+                  {formatCurrency(val)}
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={key} className="flex justify-between text-sm">
               <span className="text-text-primary">{label}</span>
               <span className="font-medium text-text-primary">
                 {isDays ? val : formatCurrency(val)}
-                {remarks && (
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    ({remarks})
-                  </span>
-                )}
               </span>
             </div>
           );
