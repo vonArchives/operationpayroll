@@ -106,15 +106,14 @@ export default function EditModal({ employee, open, onClose }) {
     }
     // ------------------------------------------------------------------
 
-    // 1. Auto-compute Daily Pay based on Monthly Pay and Work Days
-    if (mPay > 0 && wDays > 0) {
-      // Bimonthly fix: Divide by 2 first
-      const calculatedDaily = Number(((mPay / 2) / wDays).toFixed(2));
+    // 1. Auto-compute Daily Pay based on Monthly Pay (Fixed 26 Days)
+    if (mPay > 0) {
+      const calculatedDaily = Number((mPay / 26).toFixed(2));
       if (calculatedDaily !== currentDailyPay) {
         setValue("daily_pay", calculatedDaily, { shouldValidate: true });
         currentDailyPay = calculatedDaily; // Update local variable for next steps
       }
-    } else if ((mPay === 0 || wDays === 0) && currentDailyPay !== 0) {
+    } else if (mPay === 0 && currentDailyPay !== 0) {
       setValue("daily_pay", 0, { shouldValidate: true });
       currentDailyPay = 0;
     }
