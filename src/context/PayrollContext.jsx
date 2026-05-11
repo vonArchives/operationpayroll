@@ -326,7 +326,7 @@ export function PayrollProvider({ children }) {
   }, [allPeriodData]);
 
   const { editPayroll, approvePayroll, unapprovePayroll, sendPayroll, createPayrollMonth, generatePayrollForNewEmployee } =
-    usePayrollMutations(dispatch, state.employees, setMutationLoading);
+    usePayrollMutations(dispatch, state.employees, setMutationLoading, refreshPayrollData);
 
   const payrollSent =
     state.currentPeriod === "monthly"

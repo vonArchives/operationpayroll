@@ -76,20 +76,20 @@ export default function PayrollTable({
 
   return (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
           <TableRow className="border-b-0">
             <TableHead
               rowSpan={2}
-              className="sticky left-0 z-20 bg-card align-bottom font-bold text-foreground text-[10px] px-2 py-1"
+              className="sticky left-0 z-20 bg-card align-bottom font-bold text-foreground"
             >
               Employee
             </TableHead>
             {showBasic && (
               <TableHead
                 colSpan={perms.canViewDailyRate ? 4 : 1}
-                className="bg-blue-50 text-center text-[10px] font-bold uppercase tracking-wider text-blue-700 px-2 py-1"
+                className="bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
               >
                 Basic Pay
               </TableHead>
@@ -97,7 +97,7 @@ export default function PayrollTable({
             {showEarnings && (
               <TableHead
                 colSpan={12}
-                className="bg-green-50 text-center text-[10px] font-bold uppercase tracking-wider text-green-700 px-2 py-1"
+                className="bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
               >
                 Earnings
               </TableHead>
@@ -105,7 +105,7 @@ export default function PayrollTable({
             {showDeductions && (
               <TableHead
                 colSpan={7}
-                className="bg-red-50 text-center text-[10px] font-bold uppercase tracking-wider text-red-700 px-2 py-1"
+                className="bg-red-50 text-center text-xs font-bold uppercase tracking-wider text-red-700"
               >
                 Deductions
               </TableHead>
@@ -113,21 +113,21 @@ export default function PayrollTable({
             {perms.canViewFinalPay && (
               <TableHead
                 rowSpan={2}
-                className="bg-purple-50 text-center align-bottom text-[10px] font-bold uppercase tracking-wider text-purple-700 px-2 py-1"
+                className="bg-purple-50 text-center align-bottom text-xs font-bold uppercase tracking-wider text-purple-700"
               >
                 Final Pay
               </TableHead>
             )}
             <TableHead
               rowSpan={2}
-              className="align-bottom text-[10px] font-bold uppercase px-2 py-1"
+              className="align-bottom text-xs font-bold uppercase"
             >
               Status
             </TableHead>
             {!isMonthly && !readOnly && (
               <TableHead
                 rowSpan={2}
-                className="align-bottom text-[10px] font-bold uppercase px-2 py-1"
+                className="align-bottom text-xs font-bold uppercase"
               >
                 Actions
               </TableHead>
@@ -136,37 +136,37 @@ export default function PayrollTable({
           <TableRow>
             {showBasic && (
               <>
-                {perms.canViewMonthlyPay && <TableHead className="bg-blue-50 text-[10px] text-blue-700 px-2 py-1 w-16">MonthlyPay</TableHead>}
-                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-[10px] text-blue-700 px-2 py-1 w-16">Daily</TableHead>}
-                <TableHead className="bg-blue-50 text-[10px] text-blue-700 px-2 py-1 w-16">Days</TableHead>
-                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-[10px] text-blue-700 px-2 py-1 w-16">Total</TableHead>}
+                {perms.canViewMonthlyPay && <TableHead className="bg-blue-50 text-xs text-blue-700">MonthlyPay</TableHead>}
+                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Daily</TableHead>}
+                <TableHead className="bg-blue-50 text-xs text-blue-700">Days</TableHead>
+                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Total</TableHead>}
               </>
             )}
             {showEarnings && (
               <>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Holiday Days</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Holiday Pay</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">SNWH Days</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">SNWH Pay</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Wellness</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Comm</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Bday</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Comm.</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Allow</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Bonus</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">13th</TableHead>
-                <TableHead className="bg-green-50 text-[10px] text-green-700 px-2 py-1 w-[60px]">Total</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Days</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Pay</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Days</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Pay</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Wellness</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Comm</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Bday</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Comm.</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Allow</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Bonus</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">13th</TableHead>
+                <TableHead className="bg-green-50 text-xs text-green-700">Total</TableHead>
               </>
             )}
             {showDeductions && (
               <>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">Adv</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">SSS</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">PH</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">Pag</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">HMO</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">Other</TableHead>
-                <TableHead className="bg-red-50 text-[10px] text-red-700 px-2 py-1 w-[60px]">Total</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">Adv</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">SSS</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">PH</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">Pag</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">HMO</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">Other</TableHead>
+                <TableHead className="bg-red-50 text-xs text-red-700">Total</TableHead>
               </>
             )}
           </TableRow>
@@ -180,50 +180,50 @@ export default function PayrollTable({
 
             return (
               <TableRow key={emp.id}>
-                <TableCell className="sticky left-0 z-10 bg-card font-medium text-xs px-2 py-1 w-32">
+                <TableCell className="sticky left-0 z-10 bg-card font-medium">
                   {emp.name}
                 </TableCell>
                 {showBasic && (
                   <>
-                    {perms.canViewMonthlyPay && <TableCell className="text-xs px-2 py-1 w-16">{formatCurrency(payroll.monthly_pay)}</TableCell>}
-                    {perms.canViewDailyRate && <TableCell className="text-xs px-2 py-1 w-16">{formatCurrency(payroll?.daily_pay)}</TableCell>}
-                    <TableCell className="text-xs px-2 py-1 w-16">{payroll?.work_days || 0}</TableCell>
-                    {perms.canViewTotalBasicPay && <TableCell className="font-medium text-xs px-2 py-1 w-16">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
+                    {perms.canViewMonthlyPay && <TableCell>{formatCurrency(payroll.monthly_pay)}</TableCell>}
+                    {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll?.daily_pay)}</TableCell>}
+                    <TableCell>{payroll?.work_days || 0}</TableCell>
+                    {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
                   </>
                 )}
                 {showEarnings && (
                   <>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{payroll?.holiday_days || 0}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.holiday_pay)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{payroll?.snwh_days || 0}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.snwh_pay)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.wellness_allowance)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.communication_allowance)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.birthday_allowance)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.commission)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.allowance)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.bonuses)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.thirteenth_month_pay)}</TableCell>
-                    <TableCell className="font-medium text-xs px-2 py-1 w-[60px]">{formatCurrency(computed?.total_earnings)}</TableCell>
+                    <TableCell>{payroll?.holiday_days || 0}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.holiday_pay)}</TableCell>
+                    <TableCell>{payroll?.snwh_days || 0}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.snwh_pay)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.wellness_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.communication_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.birthday_allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.commission)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.allowance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.bonuses)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.thirteenth_month_pay)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(computed?.total_earnings)}</TableCell>
                   </>
                 )}
                 {showDeductions && (
                   <>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.cash_advance)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.sss)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.philhealth)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.pagibig)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.hmo)}</TableCell>
-                    <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(payroll?.others)}</TableCell>
-                    <TableCell className="font-medium text-xs px-2 py-1 w-[60px]">{formatCurrency(computed?.total_deductions)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.cash_advance)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.sss)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.philhealth)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.pagibig)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.hmo)}</TableCell>
+                    <TableCell>{formatCurrency(payroll?.others)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(computed?.total_deductions)}</TableCell>
                   </>
                 )}
                 {perms.canViewFinalPay && (
-                  <TableCell className="font-bold text-purple-700 text-xs px-2 py-1 w-20">
+                  <TableCell className="font-bold text-purple-700">
                     {formatCurrency(computed?.net_pay)}
                   </TableCell>
                 )}
-                <TableCell className="text-xs px-2 py-1 w-[72px]">
+                <TableCell>
                   {isMonthly ? (
                     <Badge variant="secondary">Combined</Badge>
                   ) : (
@@ -233,7 +233,7 @@ export default function PayrollTable({
                   )}
                 </TableCell>
                 {!isMonthly && !readOnly && (
-                  <TableCell className="text-xs px-2 py-1 w-20">
+                  <TableCell>
                     <div className="flex items-center gap-1">
                       <TooltipProvider>
                         <Tooltip>
@@ -328,47 +328,47 @@ export default function PayrollTable({
           {/* Totals row */}
           {perms.canViewTotalsRow && totals && (
             <TableRow className="border-t-2 border-border bg-muted font-bold">
-              <TableCell className="sticky left-0 z-10 bg-muted text-xs px-2 py-1 w-32">TOTALS</TableCell>
+              <TableCell className="sticky left-0 z-10 bg-muted">TOTALS</TableCell>
               {showBasic && (
                 <>
-                  {perms.canViewMonthlyPay && <TableCell className="text-xs px-2 py-1 w-16">{formatCurrency(totals.monthly_pay)}</TableCell>}
-                  {perms.canViewDailyRate && <TableCell className="text-xs px-2 py-1 w-16">{formatCurrency(totals?.daily_pay)}</TableCell>}
-                  <TableCell className="text-xs px-2 py-1 w-16">{totals?.work_days || 0}</TableCell>
-                  {perms.canViewTotalBasicPay && <TableCell className="text-xs px-2 py-1 w-16">{formatCurrency(totals?.total_basic_pay)}</TableCell>}
+                  {perms.canViewMonthlyPay && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
+                  {perms.canViewDailyRate && <TableCell>{formatCurrency(totals?.daily_pay)}</TableCell>}
+                  <TableCell>{totals?.work_days || 0}</TableCell>
+                  {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals?.total_basic_pay)}</TableCell>}
                 </>
               )}
               {showEarnings && (
                 <>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{totals?.holiday_days || 0}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.holiday_pay)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{totals?.snwh_days || 0}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.snwh_pay)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.wellness_allowance)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.communication_allowance)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.birthday_allowance)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.commission)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.allowance)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.bonuses)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.thirteenth_month_pay)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.total_earnings)}</TableCell>
+                  <TableCell>{totals?.holiday_days || 0}</TableCell>
+                  <TableCell>{formatCurrency(totals?.holiday_pay)}</TableCell>
+                  <TableCell>{totals?.snwh_days || 0}</TableCell>
+                  <TableCell>{formatCurrency(totals?.snwh_pay)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.wellness_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.communication_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.birthday_allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.commission)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.allowance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.bonuses)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.thirteenth_month_pay)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.total_earnings)}</TableCell>
                 </>
               )}
               {showDeductions && (
                 <>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.cash_advance)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.sss)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.philhealth)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.pagibig)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.hmo)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.others)}</TableCell>
-                  <TableCell className="text-xs px-2 py-1 w-[60px]">{formatCurrency(totals?.total_deductions)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.cash_advance)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.sss)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.philhealth)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.pagibig)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.hmo)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.others)}</TableCell>
+                  <TableCell>{formatCurrency(totals?.total_deductions)}</TableCell>
                 </>
               )}
-              <TableCell className="text-purple-700 text-xs px-2 py-1 w-20">
+              <TableCell className="text-purple-700">
                 {formatCurrency(totals?.net_pay)}
               </TableCell>
-              <TableCell className="text-xs px-2 py-1 w-[72px]" />
-              {!isMonthly && !readOnly && <TableCell className="text-xs px-2 py-1 w-20" />}
+              <TableCell />
+              {!isMonthly && !readOnly && <TableCell />}
             </TableRow>
           )}
         </TableBody>

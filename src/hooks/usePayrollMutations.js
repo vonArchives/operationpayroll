@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { computePayroll } from "@/lib/payrollUtils";
 import { toast } from "sonner";
 
-export function usePayrollMutations(dispatch, employees, setMutationLoading) {
+export function usePayrollMutations(dispatch, employees, setMutationLoading, refreshPayrollData) {
   const editPayroll = useCallback(
     async (id, updatedFields, performedBy, period = "period1") => {
       setMutationLoading(true);
@@ -187,12 +187,13 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         };
         dispatch({ type: "ADD_AUDIT_LOG", payload: { id, period, logEntry } });
         toast.success("Payroll updated");
+        if (refreshPayrollData) refreshPayrollData();
         return true;
       } finally {
         setMutationLoading(false);
       }
     },
-    [employees, setMutationLoading, dispatch]
+    [employees, setMutationLoading, dispatch, refreshPayrollData]
   );
 
   const approvePayroll = useCallback(
