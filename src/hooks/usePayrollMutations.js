@@ -80,9 +80,9 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         const workDays = updatedFields.work_days ?? empPayroll.work_days ?? 0;
         const workDaysNum = Number(workDays) || 0;
 
-        if ((updatedFields.monthly_pay !== undefined || updatedFields.work_days !== undefined) && updatedFields.daily_pay === undefined) {
-          // Bimonthly fix: Divide monthly_pay by 2 first, then divide by work_days
-          basicpayFields.daily_pay = (monthlyPayNum > 0 && workDaysNum > 0) ? ((monthlyPayNum / 2) / workDaysNum) : 0;
+        // NEW: Fixed 26-day calculation. Only recalculates if monthly_pay changes.
+        if (updatedFields.monthly_pay !== undefined && updatedFields.daily_pay === undefined) {
+          basicpayFields.daily_pay = monthlyPayNum > 0 ? (monthlyPayNum / 26) : 0;
           updatedFields.daily_pay = basicpayFields.daily_pay;
         }
 
@@ -461,7 +461,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
         return {
           pr_period_id: p.pr_period_id, 
           monthly_pay: mPay,
-          daily_pay: (mPay > 0 && wDays > 0) ? ((mPay / 2) / wDays) : 0, 
+          daily_pay: mPay > 0 ? (mPay / 26) : 0, // <-- 26 Days Fix!
           work_days: wDays,
         };
       });
@@ -613,7 +613,7 @@ export function usePayrollMutations(dispatch, employees, setMutationLoading) {
       return {
         pr_period_id: p.pr_period_id, 
         monthly_pay: mPay, 
-        daily_pay: (mPay > 0 && wDays > 0) ? ((mPay / 2) / wDays) : 0,
+        daily_pay: mPay > 0 ? (mPay / 26) : 0,
         work_days: wDays,
       }
     });
