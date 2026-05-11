@@ -176,23 +176,25 @@ export default function EditModal({ employee, open, onClose }) {
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="monthly_pay">Monthly Pay</Label>
+                    {perms.canViewMonthlyPay && (
+                      <div className="space-y-2">
+                        <Label htmlFor="monthly_pay">Monthly Pay</Label>
                         {perms.canEditField("monthly_pay") ? (
-                        <Input
-                          id="monthly_pay"
-                          type="number"
-                          step="0.01"
-                          {...register("monthly_pay")}
-                          className={cn(errors.monthly_pay && "border-danger")}
-                        />
-                      ) : (
-                        <ReadOnlyInput id="monthly_pay" value={employee?.[payrollKey]?.monthly_pay} />
-                      )}
-                      {errors.monthly_pay && (
-                        <p className="text-xs text-danger">{errors.monthly_pay.message}</p>
-                      )}
-                    </div>
+                          <Input
+                            id="monthly_pay"
+                            type="number"
+                            step="0.01"
+                            {...register("monthly_pay")}
+                            className={cn(errors.monthly_pay && "border-danger")}
+                          />
+                        ) : (
+                          <ReadOnlyInput id="monthly_pay" value={employee?.[payrollKey]?.monthly_pay} />
+                        )}
+                        {errors.monthly_pay && (
+                          <p className="text-xs text-danger">{errors.monthly_pay.message}</p>
+                        )}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="work_days">Work Days</Label>
@@ -212,18 +214,20 @@ export default function EditModal({ employee, open, onClose }) {
                     </div>
 
                     {/* Daily Rate is now strictly Read-Only and Auto-Calculated */}
-                    <div className="space-y-2">
-                      <Label htmlFor="daily_pay" className="text-muted-foreground">Daily Rate (Auto)</Label>
-                      <Input
-                        id="daily_pay"
-                        type="number"
-                        step="0.01"
-                        {...register("daily_pay")}
-                        readOnly
-                        tabIndex={-1}
-                        className="bg-muted cursor-not-allowed focus-visible:ring-0"
-                      />
-                    </div>
+                    {perms.canViewDailyRate && (
+                      <div className="space-y-2">
+                        <Label htmlFor="daily_pay" className="text-muted-foreground">Daily Rate (Auto)</Label>
+                        <Input
+                          id="daily_pay"
+                          type="number"
+                          step="0.01"
+                          {...register("daily_pay")}
+                          readOnly
+                          tabIndex={-1}
+                          className="bg-muted cursor-not-allowed focus-visible:ring-0"
+                        />
+                      </div>
+                    )}
 
                   </div>
                 </div>

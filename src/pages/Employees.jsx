@@ -60,7 +60,7 @@ function TableSkeleton() {
 
 export default function Employees() {
   const { employees, payrollPeriod, loading, error } = usePayroll();
-  const { isAdmin } = useRolePermissions();
+  const { isAdmin, canViewPayslip } = useRolePermissions();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -201,14 +201,16 @@ data = data.filter(
 <TableCell>{emp.position}</TableCell>
                          <TableCell>{roleBadge(emp.role)}</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openPayslip(emp)}
-                          >
-                            <Eye className="mr-1 h-4 w-4" />
-                            View Payslip
-                          </Button>
+                          {canViewPayslip && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openPayslip(emp)}
+                            >
+                              <Eye className="mr-1 h-4 w-4" />
+                              View Payslip
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
