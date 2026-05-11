@@ -42,6 +42,7 @@ export default function SettingsModal() {
   });
 
   const onSubmit = async (data) => {
+    console.log("Submitting:", data.currentPassword, data.newPassword);
     setIsLoading(true);
     try {
       const result = await updatePassword(data.currentPassword, data.newPassword);
