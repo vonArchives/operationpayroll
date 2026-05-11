@@ -4,181 +4,146 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
 const AuthContext = createContext(null);
-
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const COOKIE_NAME = "jpmc_auth_token";
-const STORAGE_KEY = "jpmc_session_user";
-
-// ---- Cookie helpers ----------------------------------------------------------
-const isSecure = window.location.hostname !== 'localhost';
-
-function getCookie(name) {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? match[1] : null;
-}
-
-function setCookie(name, value, maxAgeSec) {
-  document.cookie = `${name}=${value}; Max-Age=${maxAgeSec}; Path=/; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
-}
-
-function deleteCookie(name) {
-  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
-}
-
-
-// function setCookie(name, value, maxAgeSec) {
-//   document.cookie = `${name}=${value}; Max-Age=${maxAgeSec}; Path=/; SameSite=Lax; Secure`;
-// }
-
-// function deleteCookie(name) {
-//   document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; Secure`;
-// }
-
-// ---- JWT helpers -------------------------------------------------------------
-
-function decodeJwt(token) {
-  try {
-    const payload = token.split(".")[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
-// ---- Provider ----------------------------------------------------------------
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Restore session on mount from cookie (JWT) or localStorage fallback
-  useEffect(() => {
-    // Path 1: JWT cookie (new edge function)
-    const token = getCookie(COOKIE_NAME);
-    if (token) {
-      const payload = decodeJwt(token);
-      if (payload?.exp && payload.exp > Math.floor(Date.now() / 1000)) {
-        const savedUser = localStorage.getItem(STORAGE_KEY);
-        if (savedUser) {
-          try {
-            const parsed = JSON.parse(savedUser);
-            setUser(parsed);
+  // Helper to fetch HR file
+  const fetchEmployeeProfile = async (authId) => {
+    try {
+      const { data, error } = await supabase
+        .from("employee")
+        .select("*")
+        .eq("auth_id", authId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("❌ Database error while fetching profile:", error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error("❌ JS error while fetching profile:", err);
+      return null;
+    }
+  };
+
+ useEffect(() => {
+    const initializeAuth = async () => {
+      setIsInitializing(true); 
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log("Found existing session for:", session.user.email);
+          const profile = await fetchEmployeeProfile(session.user.id);
+          
+          if (profile) {
+            setUser({ ...profile, email: session.user.email });
             setIsAuthenticated(true);
-            setSessionExpiresAt(payload.exp * 1000);
-            supabase.realtime.setAuth(token);
-            return;
-          } catch {
-            localStorage.removeItem(STORAGE_KEY);
+          } else {
+            console.warn("Session exists but no employee profile found.");
+            await supabase.auth.signOut();
           }
         }
+      } catch (err) {
+        console.error("Auth initialization failed:", err);
+      } finally {
+        setIsInitializing(false); 
       }
-      // Invalid/expired JWT — clean up
-      deleteCookie(COOKIE_NAME);
-    }
+    };
 
-    // Path 2: localStorage expiry fallback (old edge function, no JWT)
-    const storedExpiry = localStorage.getItem("jpmc_session_expiry");
-    if (storedExpiry && Number(storedExpiry) > Date.now()) {
-      const savedUser = localStorage.getItem(STORAGE_KEY);
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          setUser(parsed);
-          setIsAuthenticated(true);
-          setSessionExpiresAt(Number(storedExpiry));
-          return;
-        } catch {
-          localStorage.removeItem(STORAGE_KEY);
+    // Run the initialization
+    initializeAuth();
+
+    // Set up the listener for logout events (e.g., from other tabs)
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setIsAuthenticated(false);
+        if (window.location.pathname !== "/login") {
+          window.location.replace("/login");
         }
       }
-    }
+    });
 
-    // No valid session — clean up everything
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("jpmc_session_expiry");
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Session timeout handler
-  const handleTimeout = useCallback(() => {
-    deleteCookie(COOKIE_NAME);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("jpmc_session_expiry");
-    setUser(null);
-    setIsAuthenticated(false);
-    setSessionExpiresAt(null);
-    toast.info("Your session has expired. Please log in again.");
-    window.location.href = "/login";
-  }, []);
-
-  useSessionTimeout({ onTimeout: handleTimeout, timeoutMs: SESSION_TIMEOUT_MS });
-
+  // NATIVE SUPABASE LOGIN
   const login = useCallback(async (email, password) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-api`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      console.log("Step 1: Asking Supabase to verify credentials...");
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        return {
-          success: false,
-          error: data?.error || "Invalid credentials or insufficient privileges",
-        };
+      if (authError) {
+        console.log("❌ Step 1 Failed: Invalid credentials.");
+        return { success: false, error: authError.message };
       }
 
-      const userData = data.user;
-      const token = data.token;
-      const expiresAt = Date.now() + SESSION_TIMEOUT_MS;
+      console.log("Step 2: Credentials valid! Fetching HR Profile for UID:", authData.user.id);
+      const employeeProfile = await fetchEmployeeProfile(authData.user.id);
 
-      setUser(userData);
+      if (!employeeProfile) {
+        console.log("❌ Step 2 Failed: No matching auth_id in the employee table.");
+        await supabase.auth.signOut();
+        return { success: false, error: "No associated employee profile found." };
+      }
+
+      console.log("Step 3: Profile found! Merging data and logging in...", employeeProfile.name);
+      setUser({ ...employeeProfile, email: authData.user.email });
       setIsAuthenticated(true);
-      setSessionExpiresAt(expiresAt);
 
-      if (token) {
-        // New edge function with JWT: store token in cookie
-        const payload = decodeJwt(token);
-        const jwtExpiresAt = payload?.exp ? payload.exp * 1000 : expiresAt;
-        setSessionExpiresAt(jwtExpiresAt);
-        setCookie(COOKIE_NAME, token, Math.floor(SESSION_TIMEOUT_MS / 1000));
-        supabase.realtime.setAuth(token);
-      } else {
-        // Old edge function (no JWT): store expiry timestamp in localStorage
-        localStorage.setItem("jpmc_session_expiry", String(expiresAt));
-      }
-
-      // Store user data in localStorage (non-sensitive, no token)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-
-      return { success: true, user: userData };
+      return { success: true, user: employeeProfile };
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("❌ Critical login crash:", err);
       return { success: false, error: "Something went wrong. Please try again." };
     }
   }, []);
 
-  const logout = useCallback(() => {
-    deleteCookie(COOKIE_NAME);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("jpmc_session_expiry");
+  // THE NUCLEAR LOGOUT
+  const logout = useCallback(async () => {
+    // 1. CLEAR EVERYTHING LOCALLY FIRST
+    // We do this BEFORE the API call so no old tokens can be sent
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear the specific custom cookie from your old system
+    document.cookie = "jpmc_auth_token=; Max-Age=0; path=/; SameSite=Lax;";
+    
+    // 2. Wipe React State immediately to stop re-renders
     setUser(null);
     setIsAuthenticated(false);
-    setSessionExpiresAt(null);
+
+    try {
+      // 3. Now tell Supabase to sign out (it will use the local storage 
+      // it just cleared, which is fine)
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("SignOut error:", err);
+    } finally {
+      // 4. Force a hard reload to the login page
+      // This kills all running JavaScript memory and starts fresh
+      window.location.href = "/login";
+    }
   }, []);
 
+  // SESSION TIMEOUT
+  const handleTimeout = useCallback(() => {
+    logout();
+    toast.info("Your session has expired. Please log in again.");
+  }, [logout]);
+
+  useSessionTimeout({ onTimeout: handleTimeout, timeoutMs: SESSION_TIMEOUT_MS });
+
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated, login, logout, sessionExpiresAt }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated, isInitializing, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
