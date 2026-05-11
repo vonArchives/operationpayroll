@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { cn, getInitials } from "@/lib/utils";
 import logo from "@/images/logo.png";
 import {
@@ -35,7 +36,7 @@ const adminNavItems = [
 export default function Sidebar({ collapsed, onToggle }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const { isAdmin } = useRolePermissions();
 
   /*
    added this to clear entire react memory tree
@@ -150,7 +151,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               <span
                 className="inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium capitalize"
                 style={{
-                  backgroundColor: user?.role === "admin" ? "rgba(25,114,249,0.2)" : NAVY_LIGHT,
+                  backgroundColor: isAdmin ? "rgba(25,114,249,0.2)" : NAVY_LIGHT,
                   color: user?.role === "admin" ? BRAND_BLUE : WHITE_70,
                 }}
               >

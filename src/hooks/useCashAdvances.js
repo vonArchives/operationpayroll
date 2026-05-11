@@ -16,7 +16,7 @@ export function useCashAdvances() {
         .from("cash_advances")
         .select(`
           *,
-          employee!inner(emp_id, first_name, last_name, position)
+          employee(emp_id, first_name, last_name, position)
         `)
         .order("created_at", { ascending: false });
 
