@@ -88,7 +88,7 @@ export default function PayrollTable({
             </TableHead>
             {showBasic && (
               <TableHead
-                colSpan={perms.canViewDailyRate ? 3 : 1}
+                colSpan={perms.canViewDailyRate ? 4 : 1}
                 className="bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
               >
                 Basic Pay
