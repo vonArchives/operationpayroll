@@ -125,7 +125,7 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
         const valueStr = isDays ? val : formatCurrency(val);
         if (key === "commission") {
           const remarks = payroll.commission_remarks;
-          return `<div class="row"><span>${label}</span></div>${remarks ? `<div class="row" style="padding-left:12px;font-size:11px;color:#94a3b8;"><span>${remarks}</span></div>` : ""}<div class="row" style="justify-content:flex-end;"><span>${valueStr}</span></div>`;
+          return `<div class="row"><span>${label}</span><span>${valueStr}</span></div>${remarks ? `<div class="row" style="padding-left:12px;font-size:11px;color:#94a3b8;"><span>${remarks}</span></div>` : ""}`;
         }
         return `<div class="row"><span>${label}</span><span>${valueStr}</span></div>`;
       }).join("")}
@@ -272,14 +272,14 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
           if (key === "commission") {
             const remarks = payroll.commission_remarks;
             return (
-              <div key={key} className="space-y-1">
-                <div className="text-sm text-text-primary">{label}</div>
+              <div key={key}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-primary">{label}</span>
+                  <span className="font-medium text-text-primary">{formatCurrency(val)}</span>
+                </div>
                 {remarks && (
                   <div className="pl-3 text-xs text-muted-foreground">{remarks}</div>
                 )}
-                <div className="flex justify-end text-sm font-medium text-text-primary">
-                  {formatCurrency(val)}
-                </div>
               </div>
             );
           }
