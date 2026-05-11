@@ -151,6 +151,27 @@ export default function EditModal({ employee, open, onClose }) {
     if (success) onClose();
   };
 
+  // Helper to render a form field
+  const renderField = (key, label, type = "number", fullWidth = false) => (
+    <div key={key} className={cn("space-y-1.5", fullWidth && "col-span-full")}>
+      <Label htmlFor={key} className={cn(fullWidth && "text-xs text-muted-foreground")}>{label}</Label>
+      {perms.canEditField(key) ? (
+        <Input
+          id={key}
+          type={type}
+          step={type === "number" ? "0.01" : undefined}
+          {...register(key)}
+          className={cn(errors[key] && "border-danger")}
+        />
+      ) : (
+        <ReadOnlyInput id={key} value={employee?.[payrollKey]?.[key]} type={type} />
+      )}
+      {errors[key] && (
+        <p className="text-xs text-danger">{errors[key].message}</p>
+      )}
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[95vh] max-w-4xl overflow-hidden p-0">
@@ -239,41 +260,40 @@ export default function EditModal({ employee, open, onClose }) {
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-green-700">
                     Earnings
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { key: "holiday_days", label: "Holiday Days", type: "number" },
-                      { key: "holiday_pay", label: "Holiday Pay", type: "number" },
-                      { key: "snwh_days", label: "SNWH Days", type: "number" },
-                      { key: "snwh_pay", label: "SNWH Pay", type: "number" },
-                      { key: "wellness_allowance", label: "Wellness", type: "number" },
-                      { key: "communication_allowance", label: "Communication", type: "number" },
-                      { key: "birthday_allowance", label: "Birthday", type: "number" },
-                      { key: "commission", label: "Commission", type: "number" },
-                      { key: "commission_remarks", label: "Commission Remarks", type: "text" },
-                      { key: "allowance", label: "Allowance", type: "number" },
-                      { key: "bonuses", label: "Bonuses", type: "number" },
-                      { key: "thirteenth_month_pay", label: "13th Month", type: "number" },
-                      { key: "holiday_remarks", label: "Holiday Remarks", type: "text" },
-                      { key: "snwh_remarks", label: "SNWH Remarks", type: "text" },
-                    ].map(({ key, label, type = "number" }) => (
-                      <div key={key} className="space-y-2">
-                        <Label htmlFor={key}>{label}</Label>
-                        {perms.canEditField(key) ? (
-                          <Input
-                            id={key}
-                            type={type}
-                            step={type === "number" ? "0.01" : undefined}
-                            {...register(key)}
-                            className={cn(errors[key] && "border-danger")}
-                          />
-                        ) : (
-                          <ReadOnlyInput id={key} value={employee?.[payrollKey]?.[key]} />
-                        )}
-                        {errors[key] && (
-                          <p className="text-xs text-danger">{errors[key].message}</p>
-                        )}
+                  <div className="space-y-3">
+                    {/* Holiday Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        {renderField("holiday_days", "Holiday Days", "number")}
+                        {renderField("holiday_pay", "Holiday Pay", "number")}
                       </div>
-                    ))}
+                      {renderField("holiday_remarks", "Holiday Remarks", "text", true)}
+                    </div>
+
+                    {/* SNWH Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        {renderField("snwh_days", "SNWH Days", "number")}
+                        {renderField("snwh_pay", "SNWH Pay", "number")}
+                      </div>
+                      {renderField("snwh_remarks", "SNWH Remarks", "text", true)}
+                    </div>
+
+                    {/* Commission Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      {renderField("commission", "Commission", "number")}
+                      {renderField("commission_remarks", "Commission Remarks", "text", true)}
+                    </div>
+
+                    {/* Other Allowances */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {renderField("wellness_allowance", "Wellness", "number")}
+                      {renderField("communication_allowance", "Communication", "number")}
+                      {renderField("birthday_allowance", "Birthday", "number")}
+                      {renderField("allowance", "Allowance", "number")}
+                      {renderField("bonuses", "Bonuses", "number")}
+                      {renderField("thirteenth_month_pay", "13th Month", "number")}
+                    </div>
                   </div>
                 </div>
 
