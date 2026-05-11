@@ -18,7 +18,7 @@ export function useRolePermissions() {
   const { user } = useAuth();
   const currentRole = user?.role?.toLowerCase();
   const isAdmin = currentRole === 'admin' || currentRole === 'devadmin';
-  const isModerator = user?.role === "moderator";
+  const isModerator = currentRole === "moderator";
 
   return {
     user,
@@ -26,6 +26,7 @@ export function useRolePermissions() {
     isModerator,
 
     // Column visibility
+    canViewMonthlyPay: isAdmin,
     canViewDailyRate: isAdmin,
     canViewTotalBasicPay: isAdmin,
     canViewFinalPay: isAdmin,

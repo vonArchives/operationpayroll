@@ -59,8 +59,8 @@ function TableSkeleton() {
 }
 
 export default function Employees() {
-  const { employees, payrollPeriod, loading, error } = usePayroll();
-  const { isAdmin } = useRolePermissions();
+  const { employees, payrollPeriod, currentPeriod, loading, error } = usePayroll();
+  const { isAdmin, canViewPayslip } = useRolePermissions();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +68,7 @@ export default function Employees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const payrollKey = `payroll_${payrollPeriod}`;
+  const payrollKey = `payroll_${currentPeriod}`;
 
   const activeEmployeesForPeriod = employees.filter((employee) => {
     return employee[payrollKey] !== undefined && employee[payrollKey] !== null;
@@ -201,14 +201,16 @@ data = data.filter(
 <TableCell>{emp.position}</TableCell>
                          <TableCell>{roleBadge(emp.role)}</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openPayslip(emp)}
-                          >
-                            <Eye className="mr-1 h-4 w-4" />
-                            View Payslip
-                          </Button>
+                          {canViewPayslip && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openPayslip(emp)}
+                            >
+                              <Eye className="mr-1 h-4 w-4" />
+                              View Payslip
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -278,10 +280,16 @@ data = data.filter(
             <PayslipCard
               employee={selectedEmployee}
               period={payrollPeriod}
-              payrollDate={selectedEmployee?.payroll_period1?.date_to
-                ? new Date(selectedEmployee.payroll_period1.date_to + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                : payrollPeriod
-              }
+              payrollData={selectedEmployee?.[payrollKey]}
+              payrollDate={(() => {
+                const payroll = selectedEmployee?.[payrollKey];
+                if (!payroll?.date_to) return payrollPeriod;
+                const date = new Date(payroll.date_to + "T00:00:00");
+                const month = date.toLocaleDateString("en-US", { month: "long" });
+                const year = date.getFullYear();
+                const range = currentPeriod === "period1" ? "1–15" : "16–30";
+                return `${month} ${range}, ${year}`;
+              })()}
             />
           </div>
         </DialogContent>

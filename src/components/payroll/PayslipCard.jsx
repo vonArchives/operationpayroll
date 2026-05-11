@@ -121,9 +121,13 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
       <p class="section-title">Earnings</p>
       ${EARNINGS_KEYS.map(({ key, label, isDays }) => {
         const val = payroll[key];
-        const remarks = payroll[`${key}_remarks`];
         if (!val || Number(val) === 0) return "";
-        return `<div class="row"><span>${label}</span><span>${isDays ? val : formatCurrency(val)}</span></div>${remarks ? `<div class="row" style="font-size:11px;color:#94a3b8;padding-left:12px;"><span>${remarks}</span><span></span></div>` : ""}`;
+        const valueStr = isDays ? val : formatCurrency(val);
+        if (key === "commission") {
+          const remarks = payroll.commission_remarks;
+          return `<div class="row"><span>${label}</span><span>${valueStr}</span></div>${remarks ? `<div class="row" style="padding-left:12px;font-size:11px;color:#94a3b8;"><span>${remarks}</span></div>` : ""}`;
+        }
+        return `<div class="row"><span>${label}</span><span>${valueStr}</span></div>`;
       }).join("")}
       <div class="row total"><span>Total Earnings</span><span>${formatCurrency(computed.total_earnings)}</span></div>
     </div>
@@ -264,19 +268,27 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
         <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Earnings</h3>
         {EARNINGS_KEYS.map(({ key, label, isDays }) => {
           const val = payroll[key];
-          const remarks = payroll[`${key}_remarks`];
           if (!val || Number(val) === 0) return null;
-          return (
-            <div key={key}>
-              <div className="flex justify-between text-sm">
-                <span className="text-text-primary">{label}</span>
-                <span className="font-medium text-text-primary">{isDays ? val : formatCurrency(val)}</span>
-              </div>
-              {remarks && (
-                <div className="pl-4 text-xs text-muted-foreground">
-                  {remarks}
+          if (key === "commission") {
+            const remarks = payroll.commission_remarks;
+            return (
+              <div key={key}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-primary">{label}</span>
+                  <span className="font-medium text-text-primary">{formatCurrency(val)}</span>
                 </div>
-              )}
+                {remarks && (
+                  <div className="pl-3 text-xs text-muted-foreground">{remarks}</div>
+                )}
+              </div>
+            );
+          }
+          return (
+            <div key={key} className="flex justify-between text-sm">
+              <span className="text-text-primary">{label}</span>
+              <span className="font-medium text-text-primary">
+                {isDays ? val : formatCurrency(val)}
+              </span>
             </div>
           );
         })}
