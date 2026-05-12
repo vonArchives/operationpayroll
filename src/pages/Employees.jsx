@@ -287,7 +287,8 @@ data = data.filter(
                 const date = new Date(payroll.date_to + "T00:00:00");
                 const month = date.toLocaleDateString("en-US", { month: "long" });
                 const year = date.getFullYear();
-                const range = currentPeriod === "period1" ? "1–15" : "16–30";
+                const lastDay = new Date(year, date.getMonth() + 1, 0).getDate();
+                const range = currentPeriod === "period1" ? "1–15" : `16–${lastDay}`;
                 return `${month} ${range}, ${year}`;
               })()}
             />
