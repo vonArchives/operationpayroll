@@ -107,12 +107,17 @@ export default function PayrollRun() {
     return data;
   }, [employees, search, filter, isMonthly, statusKey]);
 
+  const activeEmployeesForPeriod = useMemo(() => {
+    if (isMonthly) return employees.filter(e => e.payroll_period1 || e.payroll_period2);
+    return employees.filter(e => e[payrollKey] !== undefined && e[payrollKey] !== null);
+  }, [employees, isMonthly, payrollKey]);
+
   const approvedCount = useMemo(() => {
     if (isMonthly) return 0;
-    return employees.filter((e) => (e[statusKey] || e.status) === "Approved").length;
-  }, [employees, isMonthly, statusKey]);
+    return activeEmployeesForPeriod.filter((e) => (e[statusKey] || e.status) === "Approved").length;
+  }, [activeEmployeesForPeriod, isMonthly, statusKey]);
 
-  const totalCount = employees.length;
+  const totalCount = activeEmployeesForPeriod.length;
   const progress = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
   const allApproved = approvedCount === totalCount && totalCount > 0;
   const canSend = !isMonthly && allApproved && !isPayrollSent;
