@@ -42,7 +42,10 @@ export function AuthProvider({ children }) {
           const profile = await fetchEmployeeProfile(session.user.id);
           
           if (profile) {
-            setUser({ ...profile, email: session.user.email });
+            setUser({ ...profile, 
+              name: `${profile.first_name} ${profile.last_name}`,
+              email: session.user.email
+            });
             setIsAuthenticated(true);
           } else {
             console.warn("Session exists but no employee profile found.");
@@ -97,10 +100,13 @@ export function AuthProvider({ children }) {
       }
 
       console.log("Step 3: Profile found! Merging data and logging in...", employeeProfile.name);
-      setUser({ ...employeeProfile, email: authData.user.email });
+      setUser({ 
+        ...employeeProfile, 
+        name: `${employeeProfile.first_name} ${employeeProfile.last_name}`,
+        email: authData.user.email });
       setIsAuthenticated(true);
 
-      return { success: true, user: employeeProfile };
+      return { success: true, user: {employeeProfile, name: `${employeeProfile.first_name} ${employeeProfile.last_name}`} };
     } catch (err) {
       console.error("❌ Critical login crash:", err);
       return { success: false, error: "Something went wrong. Please try again." };
