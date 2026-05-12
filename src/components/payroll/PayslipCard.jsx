@@ -3,11 +3,9 @@ import { computePayroll, formatCurrency } from "@/lib/payrollUtils";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Printer, Mail, FileText } from "lucide-react";
+import { Printer, Mail } from "lucide-react"; // Removed FileText as it was unused
 import logo from "@/images/logo.png";
-import { jsPDF } from "jspdf"; 
-import html2canvas from "html2canvas";
-import { supabase } from "@/lib/supabaseClient"; 
+import { generateAndSendPayslip } from "@/lib/payslipEmailer"; 
 
 const EARNINGS_KEYS = [
   { key: "holiday_days", label: "Holiday Days", isDays: true },
@@ -75,32 +73,7 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
 </body>
 </html>`;
 
-  // 2. Scoped HTML for html2canvas (No <html> or <body> tags to break rendering)
-  const getPdfHTML = () => `
-    <div id="pdf-container" style="width: 700px; padding: 40px; background: white; font-family: 'Segoe UI', sans-serif; color: #0f172a;">
-      <style>
-        #pdf-container .header { text-align: center; margin-bottom: 24px; }
-        #pdf-container .header h1 { font-size: 24px; font-weight: 700; margin: 0; }
-        #pdf-container .header p { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 4px; margin-bottom: 0; }
-        #pdf-container .header .period { font-size: 11px; color: #94a3b8; margin-top: 4px; }
-        #pdf-container .employee-info { margin-bottom: 20px; }
-        #pdf-container .employee-info .name { font-weight: 600; font-size: 14px; margin: 0; }
-        #pdf-container .employee-info .detail { font-size: 13px; color: #64748b; margin: 0; }
-        #pdf-container .section { margin-bottom: 16px; }
-        #pdf-container .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 0; }
-        #pdf-container .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
-        #pdf-container .row span { display: block; }
-        #pdf-container .row.total { font-weight: 600; border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 4px; }
-        #pdf-container .deduction { color: #dc2626; }
-        #pdf-container .net-pay { background: #1e3682; color: #fff; text-align: center; padding: 16px; border-radius: 8px; margin-top: 20px; }
-        #pdf-container .net-pay .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin: 0; }
-        #pdf-container .net-pay .amount { font-size: 28px; font-weight: 700; margin-top: 4px; margin-bottom: 0; }
-      </style>
-      ${getPayslipInnerContent()}
-    </div>
-  `;
-
-  // 3. Shared Content (So we don't write it twice)
+  // 2. Shared Content for Browser Printing
   const getPayslipInnerContent = () => `
     <div class="header">
       <h1>JPMC Payroll</h1>
@@ -157,60 +130,25 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
     toast.success("Payslip opened for printing.");
   };
 
+  // 3. THE CLEANED UP EMAIL FUNCTION
   const handleEmail = async () => {
     const toastId = toast.loading("Generating PDF and sending to employee email...");
+    
+    const periodLabel = payrollDate || period;
+    
+    // Call our clean utility! 
+    // Passing null for the override so it goes to the actual employee (emp.email)
+    const success = await generateAndSendPayslip(
+      employee, 
+      payroll, 
+      computed, 
+      periodLabel, 
+      null 
+    );
 
-    try {
-      // 1. Create the invisible container properly scoped
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = getPdfHTML();
-      // Hide it behind everything instead of pushing it completely off-screen
-      tempDiv.style.position = "absolute";
-      tempDiv.style.top = "0";
-      tempDiv.style.left = "0";
-      tempDiv.style.zIndex = "-1000"; 
-      tempDiv.style.opacity = "0";
-      document.body.appendChild(tempDiv);
-
-      // Target the specific container inside our temp div
-      const targetElement = document.getElementById("pdf-container");
-
-      // 2. Take the high-res snapshot
-      const canvas = await html2canvas(targetElement, { 
-        scale: 2,
-        backgroundColor: "#ffffff",
-        width: 700 // Explicitly enforce the width!
-      });
-      const imgData = canvas.toDataURL("image/png");
-      document.body.removeChild(tempDiv);
-
-      // 3. Setup PDF to standard A4 Size and scale image to fit perfectly
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-      // 4. Convert to Base64 String
-      const pdfDataUri = pdf.output("datauristring");
-      const pdfBase64 = pdfDataUri.split(",")[1];
-
-      // 5. Send to Supabase
-      const { error } = await supabase.functions.invoke('send-payslip', {
-        body: {
-          email: employee.email,
-          employeeName: employee.name,
-          period: period,
-          pdfBase64: pdfBase64 
-        }
-      });
-
-      if (error) throw error;
-      
+    if (success) {
       toast.success(`Payslip sent successfully!`, { id: toastId });
-
-    } catch (err) {
-      console.error(err);
+    } else {
       toast.error("Failed to send payslip email", { id: toastId });
     }
   };

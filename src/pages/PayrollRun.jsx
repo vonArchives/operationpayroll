@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useAuth } from "@/context/AuthContext";
-import { computePayroll, computeMonthlySummary, toNum } from "@/lib/payrollUtils";
+import { computePayroll, computeMonthlySummary, toNum, formatCurrency, formatPayslipDateRange } from "@/lib/payrollUtils";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import PayrollTable from "@/components/payroll/PayrollTable";
+import { generateAndSendPayslip } from "@/lib/payslipEmailer"; 
+
 import {
   Card,
   CardContent,
@@ -40,7 +42,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Send, X, Plus, TriangleAlert } from "lucide-react";
+import { Search, Send, X, Plus, TriangleAlert, Loader2 } from "lucide-react";
 
 const PERIODS = [
   { key: "period1", label: "Period 1", sub: "Mid-Month" },
@@ -79,12 +81,13 @@ export default function PayrollRun() {
   const [newMonth, setNewMonth] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Period-specific dynamic keys
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
+
   const isMonthly = currentPeriod === "monthly";
   const statusKey = isMonthly ? null : `status_${currentPeriod}`;
   const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
   
-  // Handles both V1 explicit variables and V2 unified database variables
   const isPayrollSent = isMonthly
     ? false
     : currentPeriod === "period1" ? payrollSent_period1 : payrollSent_period2;
@@ -98,7 +101,6 @@ export default function PayrollRun() {
     }
     
     if (!isMonthly && filter !== "all") {
-      // Fallback allows for nested period data OR flattened Supabase data
       data = data.filter((emp) => {
         const empStatus = emp[statusKey] || emp.status;
         return empStatus === (filter === "approved" ? "Approved" : "Pending");
@@ -117,9 +119,55 @@ export default function PayrollRun() {
   const allApproved = approvedCount === totalCount && totalCount > 0;
   const canSend = !isMonthly && allApproved && !isPayrollSent;
 
+  // THE EMAIL GATLING GUN PROTOCOL
   const handleSend = async () => {
-    const success = await sendPayroll(user.name, currentPeriod);
-    if (success) setSendDialogOpen(false);
+    setSendDialogOpen(false);
+    setIsSendingBulk(true);
+    setSendProgress({ current: 0, total: employees.length });
+
+    let successCount = 0;
+    let failCount = 0;
+    const periodLabel = formatPayslipDateRange(selectedMonth, currentPeriod);
+
+    for (let i = 0; i < employees.length; i++) {
+      const emp = employees[i];
+      const payroll = emp[payrollKey] || emp.payroll;
+
+      setSendProgress({ current: i + 1, total: employees.length });
+
+      // THE FIX: Allow exactly 0, but catch missing data (null or undefined)
+      if (!payroll || payroll.daily_pay === null || payroll.daily_pay === undefined) {
+        console.warn(`Skipping ${emp.name} - payroll data is missing or undefined.`);
+        failCount++;
+        continue;
+      }
+
+      const computed = computePayroll(payroll);
+
+      // Call clean utility
+      const success = await generateAndSendPayslip(
+        emp, 
+        payroll, 
+        computed, 
+        periodLabel, 
+        "vaughnadiorquillas@gmail.com" 
+      );
+
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    const dbSuccess = await sendPayroll(user.name, currentPeriod);
+    setIsSendingBulk(false);
+    
+    if (dbSuccess && failCount === 0) {
+      toast.success(`Successfully sent ${successCount} emails and locked payroll!`);
+    } else {
+      toast.warning(`Sent ${successCount} emails. Failed: ${failCount}. DB Locked: ${dbSuccess ? 'Yes' : 'No'}`);
+    }
   };
 
   const handleCreatePayroll = async () => {
@@ -131,14 +179,15 @@ export default function PayrollRun() {
       toast.success(`Payroll for ${new Date(newMonth + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })} created successfully!`);
       setCreateDialogOpen(false);
       setNewMonth("");
-      // Refresh payroll data to load new month
       refreshPayrollData();
     } else {
       toast.error(result.error || "Failed to create payroll.");
     }
   };
 
-  const sendDisabledReason = isMonthly
+  const sendDisabledReason = isSendingBulk
+    ? "Emails are currently being sent..."
+    : isMonthly
     ? "Send is only available for individual periods"
     : mutationLoading
     ? "Processing..."
@@ -150,8 +199,7 @@ export default function PayrollRun() {
 
   const totals = useMemo(() => {
     const t = {
-      monthly_pay: 0,
-      daily_pay: 0, work_days: 0, total_basic_pay: 0, holiday_days: 0, holiday_pay: 0,
+      monthly_pay: 0, daily_pay: 0, work_days: 0, total_basic_pay: 0, holiday_days: 0, holiday_pay: 0,
       snwh_days: 0, snwh_pay: 0, wellness_allowance: 0, communication_allowance: 0,
       birthday_allowance: 0, commission: 0, allowance: 0, bonuses: 0,
       thirteenth_month_pay: 0, total_earnings: 0, cash_advance: 0,
@@ -165,9 +213,8 @@ export default function PayrollRun() {
         c = computeMonthlySummary(emp);
         p = c;
       } else {
-        // Fallback to emp.payroll if the Supabase object is flattened
         p = emp[payrollKey] || emp.payroll;
-        if (!p) return; // Prevent crashes if data is missing during load
+        if (!p) return; 
         c = computePayroll(p);
       }
 
@@ -203,7 +250,6 @@ export default function PayrollRun() {
     return t;
   }, [filteredEmployees, isMonthly, payrollKey]);
 
-  // Handle actual database errors immediately
   if (error) {
     return (
       <div className="p-6">
@@ -219,7 +265,6 @@ export default function PayrollRun() {
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* Left — Title and progress */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Payroll Summary — {payrollPeriod}
@@ -247,9 +292,18 @@ export default function PayrollRun() {
                 <span>
                   <AlertDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
                     <AlertDialogTrigger asChild>
-                      <Button disabled={!canSend || mutationLoading} className="gap-2">
-                        <Send className="h-4 w-4" />
-                        Send Payroll
+                      <Button disabled={!canSend || mutationLoading || isSendingBulk} className="gap-2">
+                        {isSendingBulk ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sending {sendProgress.current} of {sendProgress.total}...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" />
+                            Send Payroll
+                          </>
+                        )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -275,16 +329,15 @@ export default function PayrollRun() {
                               </p>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              Once sent, payroll data will be locked. No further edits,
-                              approvals, or status changes are possible for this period.
+                              This will generate PDFs, email all {totalCount} employees, and lock the period in the database.
                             </p>
                           </div>
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSend} disabled={mutationLoading}>
-                          {mutationLoading ? "Sending..." : "Confirm Send"}
+                        <AlertDialogAction onClick={handleSend}>
+                          Confirm Send
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -349,7 +402,7 @@ export default function PayrollRun() {
               >
                 {creating ? (
                   <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
@@ -364,7 +417,7 @@ export default function PayrollRun() {
         </Dialog>
       )}
 
-      {/* Month Selector — Admin only */}
+      {/* Month Selector */}
       {isAdmin && availableMonths.length > 0 && (
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-muted-foreground">

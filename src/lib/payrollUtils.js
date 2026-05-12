@@ -135,3 +135,25 @@ export function computeMonthlySummary(employee) {
     ...computePayroll(combined),
   };
 }
+
+/**
+ * Converts a month string ("2026-02") and period ("period1") into a formatted date range.
+ */
+export function formatPayslipDateRange(monthString, periodKey) {
+  if (!monthString) return periodKey; 
+  
+  const [year, month] = monthString.split("-");
+  
+  // JavaScript months are 0-indexed, so we subtract 1 from the month
+  const date = new Date(year, parseInt(month) - 1, 1);
+  const monthName = date.toLocaleString('en-US', { month: 'long' });
+  
+  // Magic Trick: Getting day '0' of the NEXT month returns the LAST day of the current month!
+  const lastDay = new Date(year, parseInt(month), 0).getDate();
+
+  if (periodKey === "period1") return `${monthName} 1-15, ${year}`;
+  if (periodKey === "period2") return `${monthName} 16-${lastDay}, ${year}`;
+  if (periodKey === "monthly") return `${monthName} 1-${lastDay}, ${year}`;
+  
+  return `${monthName} ${year}`;
+}
