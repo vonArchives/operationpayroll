@@ -150,7 +150,7 @@ export default function PayrollRun() {
         payroll, 
         computed, 
         periodLabel, 
-        "vaughnadiorquillas@gmail.com" 
+        null
       );
 
       if (success) {
