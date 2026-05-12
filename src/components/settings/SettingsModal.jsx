@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const passwordSchema = z
   .object({
@@ -30,6 +30,9 @@ const passwordSchema = z
 export default function SettingsModal() {
   const { isSettingsOpen, closeSettings, updatePassword } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const {
     register,
@@ -69,12 +72,21 @@ export default function SettingsModal() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Current Password</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              {...register("currentPassword")}
-              className={errors.currentPassword ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrent ? "text" : "password"}
+                {...register("currentPassword")}
+                className={errors.currentPassword ? "border-danger pr-10" : "pr-10"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.currentPassword && (
               <p className="text-sm text-danger">{errors.currentPassword.message}</p>
             )}
@@ -82,12 +94,21 @@ export default function SettingsModal() {
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">New Password</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              {...register("newPassword")}
-              className={errors.newPassword ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showNew ? "text" : "password"}
+                {...register("newPassword")}
+                className={errors.newPassword ? "border-danger pr-10" : "pr-10"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.newPassword && (
               <p className="text-sm text-danger">{errors.newPassword.message}</p>
             )}
@@ -95,12 +116,21 @@ export default function SettingsModal() {
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              {...register("confirmPassword")}
-              className={errors.confirmPassword ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirm ? "text" : "password"}
+                {...register("confirmPassword")}
+                className={errors.confirmPassword ? "border-danger pr-10" : "pr-10"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="text-sm text-danger">{errors.confirmPassword.message}</p>
             )}
