@@ -18,6 +18,7 @@ export function useCashAdvances() {
           *,
           employee(emp_id, first_name, last_name, position)
         `)
+        .eq("is_deleted", false) // <--- SOFT DELETE FILTER: Only fetch active records
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -161,7 +162,8 @@ export function useCashAdvances() {
       try {
         const { error } = await supabase
           .from("cash_advances")
-          .delete()
+          // <--- SOFT DELETE: Update is_deleted flag instead of .delete()
+          .update({ is_deleted: true }) 
           .eq("id", id);
 
         if (error) throw error;
