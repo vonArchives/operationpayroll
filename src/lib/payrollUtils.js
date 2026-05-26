@@ -15,28 +15,53 @@ Moved the toNum function outside to
 handle all other toNum formatting in the same way.
 */
 export const toNum = (val) => {
-    if (val === "" || val === null || val === undefined) return 0;
-    const n = Number(val);
-    return Number.isNaN(n) ? 0 : n;
-  };
+  if (val === "" || val === null || val === undefined) return 0;
+  const n = Number(val);
+  return Number.isNaN(n) ? 0 : n;
+};
+
+/**
+ * Custom HR rounding rule for Basic Pay:
+ * - Decimals < 0.25 round down to the whole number
+ * - Decimals >= 0.25 but < 0.50 round to 0.50
+ * - Decimals >= 0.50 round up to the next whole number
+ */
+export function roundBasicPay(value) {
+  const whole = Math.floor(value); // Extracts the 15000
+  const decimal = value - whole;   // Extracts the .49
+
+  if (decimal < 0.25) {
+    return whole;            // e.g., 15000.01 -> 15000
+  } else if (decimal < 0.50) {
+    return whole + 0.5;      // e.g., 15000.49 -> 15000.50
+  } else {
+    return whole + 1;        // e.g., 15000.50 -> 15001
+  }
+}
 
 /**
  * Pure function to compute payroll totals from raw field inputs.
  * All inputs default to 0 if NaN, null, undefined, or empty string.
+ * ONLY Total Basic Pay is rounded UP to the nearest integer.
  *
  * @param {Object} fields - Raw payroll fields
  * @returns {Object} Computed totals: { total_basic_pay, total_earnings, total_deductions, net_pay }
  */
 export function computePayroll(fields = {}) {
-
   const daily_pay = toNum(fields.daily_pay);
   const work_days = toNum(fields.work_days);
-  const total_basic_pay = daily_pay * work_days;
+  
+  const raw_basic_pay = daily_pay * work_days;
+  
+  // 1. Apply the custom rounding ONLY to Total Basic Pay
+  const total_basic_pay = roundBasicPay(raw_basic_pay);
+  
   const holiday_total = toNum(fields.holiday_days) * toNum(fields.holiday_pay);
   const snwh_total = toNum(fields.snwh_days) * toNum(fields.snwh_pay);
 
+  // 2. Normal addition (Decimals preserved)
   const total_earnings =
-    total_basic_pay +
+    total_basic_pay + 
     holiday_total +
     snwh_total +
     toNum(fields.wellness_allowance) +
@@ -47,6 +72,7 @@ export function computePayroll(fields = {}) {
     toNum(fields.bonuses) +
     toNum(fields.thirteenth_month_pay);
 
+  // 3. Normal addition (Decimals preserved)
   const total_deductions =
     toNum(fields.cash_advance) +
     toNum(fields.sss) +
@@ -55,6 +81,7 @@ export function computePayroll(fields = {}) {
     toNum(fields.hmo) +
     toNum(fields.others);
 
+  // 4. Normal subtraction (Decimals preserved)
   const net_pay = total_earnings - total_deductions;
 
   return {
@@ -132,7 +159,7 @@ export function computeMonthlySummary(employee) {
 
   return {
     ...combined,
-    ...computePayroll(combined),
+    ...computePayroll(combined), // This will automatically use the new Math.ceil logic!
   };
 }
 
