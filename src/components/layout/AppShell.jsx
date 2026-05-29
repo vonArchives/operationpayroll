@@ -26,7 +26,7 @@ export default function AppShell() {
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((prev) => !prev)} />
       <div
         className={cn(
-          "flex flex-1 flex-col transition-all duration-300 ease-in-out",
+          "flex flex-1 flex-col min-w-0 transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
         )}
       >
