@@ -75,7 +75,7 @@ export default function PayrollTable({
   });
 
   return (
-    <div className="relative overflow-x-auto">
+    <div className="overflow-x-auto">
       <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
