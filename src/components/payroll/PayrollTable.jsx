@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { computePayroll, computeMonthlySummary, formatCurrency } from "@/lib/payrollUtils";
@@ -25,6 +25,8 @@ import {
   CheckCircle,
   XCircle,
   ClipboardList,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 export default function PayrollTable({
@@ -38,13 +40,34 @@ export default function PayrollTable({
 }) {
   const { approvePayroll, unapprovePayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
+  const tableContainerRef = useRef(null);
   const [editEmployee, setEditEmployee] = useState(null);
   const [auditEmployee, setAuditEmployee] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const payrollSent = currentPeriod === "period2" ? payrollSent_period2 : payrollSent_period1;
   const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
   const statusKey = isMonthly ? null : `status_${currentPeriod}`;
   const auditLogKey = isMonthly ? null : `auditLog_${currentPeriod}`;
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      tableContainerRef.current?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    handleFullscreenChange();
+
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   const getEmployeeData = (emp) => {
     if (isMonthly) {
@@ -75,8 +98,18 @@ export default function PayrollTable({
   });
 
   return (
-    <div className="overflow-auto max-h-[calc(100vh-12rem)]">
-      <Table className="border-separate border-spacing-0">
+    <>
+      <div className="mb-2 flex justify-end">
+        <Button variant="outline" size="icon" onClick={toggleFullscreen}>
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      <div
+        ref={tableContainerRef}
+        className="overflow-auto max-h-[calc(100vh-12rem)] [&:fullscreen]:max-h-screen [&:fullscreen]:p-4 [&:fullscreen]:bg-card"
+      >
+        <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
           <TableRow className="border-b-0">
@@ -372,7 +405,8 @@ export default function PayrollTable({
             </TableRow>
           )}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
 
       {editEmployee && (
         <EditModal
@@ -391,6 +425,6 @@ export default function PayrollTable({
           period={currentPeriod}
         />
       )}
-    </div>
+    </>
   );
 }
