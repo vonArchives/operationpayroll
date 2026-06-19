@@ -115,7 +115,7 @@ export default function PayrollTable({
           <TableRow className="sticky top-0 z-40 border-b-0">
             <TableHead
               rowSpan={2}
-              className="sticky left-0 z-30 bg-card align-bottom font-bold text-foreground"
+              className="sticky left-0 z-50 bg-card align-bottom font-bold text-foreground"
             >
               Employee
             </TableHead>
