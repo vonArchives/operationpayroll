@@ -41,9 +41,11 @@ export default function PayrollTable({
   const { approvePayroll, unapprovePayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
   const tableContainerRef = useRef(null);
+  const firstHeaderRowRef = useRef(null);
   const [editEmployee, setEditEmployee] = useState(null);
   const [auditEmployee, setAuditEmployee] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [headerRowHeight, setHeaderRowHeight] = useState(48);
 
   const payrollSent = currentPeriod === "period2" ? payrollSent_period2 : payrollSent_period1;
   const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
@@ -68,6 +70,19 @@ export default function PayrollTable({
 
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    const updateHeaderRowHeight = () => {
+      if (firstHeaderRowRef.current?.offsetHeight) {
+        setHeaderRowHeight(firstHeaderRowRef.current.offsetHeight);
+      }
+    };
+
+    updateHeaderRowHeight();
+    window.addEventListener("resize", updateHeaderRowHeight);
+
+    return () => window.removeEventListener("resize", updateHeaderRowHeight);
+  }, [showBasic, showEarnings, showDeductions, perms]);
 
   const getEmployeeData = (emp) => {
     if (isMonthly) {
@@ -112,10 +127,11 @@ export default function PayrollTable({
         <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
-          <TableRow className="sticky top-0 z-40 border-b-0">
+          <TableRow ref={firstHeaderRowRef} className="sticky top-0 z-40 border-b-0">
             <TableHead
               rowSpan={2}
-              className="sticky top-0 left-0 z-[70] min-w-[180px] bg-card align-bottom font-bold text-foreground"
+              className="sticky top-0 left-0 z-[100] min-w-[180px] bg-card align-bottom font-bold text-foreground"
+              style={{ position: "sticky", top: 0, left: 0 }}
             >
               Employee
             </TableHead>
@@ -166,7 +182,7 @@ export default function PayrollTable({
               </TableHead>
             )}
           </TableRow>
-          <TableRow className="sticky top-12 z-40">
+          <TableRow className="sticky z-40" style={{ top: headerRowHeight }}>
             {showBasic && (
               <>
                 {perms.canViewMonthlyPay && <TableHead className="bg-blue-50 text-xs text-blue-700">MonthlyPay</TableHead>}
@@ -213,7 +229,10 @@ export default function PayrollTable({
 
             return (
               <TableRow key={emp.id}>
-                <TableCell className="sticky left-0 z-30 min-w-[180px] bg-card font-medium">
+                <TableCell
+                  className="sticky left-0 z-[60] min-w-[180px] bg-card font-medium"
+                  style={{ position: "sticky", left: 0 }}
+                >
                   {emp.name}
                 </TableCell>
                 {showBasic && (
@@ -361,7 +380,12 @@ export default function PayrollTable({
           {/* Totals row */}
           {perms.canViewTotalsRow && totals && (
             <TableRow className="border-t-2 border-border bg-muted font-bold">
-              <TableCell className="sticky left-0 z-30 min-w-[180px] bg-muted">TOTALS</TableCell>
+              <TableCell
+                className="sticky left-0 z-[60] min-w-[180px] bg-muted"
+                style={{ position: "sticky", left: 0 }}
+              >
+                TOTALS
+              </TableCell>
               {showBasic && (
                 <>
                   {perms.canViewMonthlyPay && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
