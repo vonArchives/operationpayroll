@@ -112,7 +112,7 @@ export default function PayrollTable({
         <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
-          <TableRow className="border-b-0">
+          <TableRow className="sticky top-0 z-40 border-b-0">
             <TableHead
               rowSpan={2}
               className="sticky left-0 z-30 bg-card align-bottom font-bold text-foreground"
@@ -166,7 +166,7 @@ export default function PayrollTable({
               </TableHead>
             )}
           </TableRow>
-          <TableRow>
+          <TableRow className="sticky top-12 z-40">
             {showBasic && (
               <>
                 {perms.canViewMonthlyPay && <TableHead className="bg-blue-50 text-xs text-blue-700">MonthlyPay</TableHead>}
