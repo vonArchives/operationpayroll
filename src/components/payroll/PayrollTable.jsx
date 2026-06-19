@@ -127,7 +127,7 @@ export default function PayrollTable({
         <Table className="border-separate border-spacing-0">
         <TableHeader>
           {/* Grouped subheaders */}
-          <TableRow ref={firstHeaderRowRef} className="sticky top-0 z-40 border-b-0">
+          <TableRow ref={firstHeaderRowRef} className="border-b-0">
             <TableHead
               rowSpan={2}
               className="sticky top-0 left-0 z-[100] min-w-[180px] bg-card align-bottom font-bold text-foreground"
@@ -138,7 +138,7 @@ export default function PayrollTable({
             {showBasic && (
               <TableHead
                 colSpan={perms.canViewDailyRate ? 4 : 1}
-                className="bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
+                className="sticky top-0 z-40 bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
               >
                 Basic Pay
               </TableHead>
@@ -146,7 +146,7 @@ export default function PayrollTable({
             {showEarnings && (
               <TableHead
                 colSpan={12}
-                className="bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
+                className="sticky top-0 z-40 bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
               >
                 Earnings
               </TableHead>
@@ -154,7 +154,7 @@ export default function PayrollTable({
             {showDeductions && (
               <TableHead
                 colSpan={7}
-                className="bg-red-50 text-center text-xs font-bold uppercase tracking-wider text-red-700"
+                className="sticky top-0 z-40 bg-red-50 text-center text-xs font-bold uppercase tracking-wider text-red-700"
               >
                 Deductions
               </TableHead>
@@ -162,60 +162,60 @@ export default function PayrollTable({
             {perms.canViewFinalPay && (
               <TableHead
                 rowSpan={2}
-                className="bg-purple-50 text-center align-bottom text-xs font-bold uppercase tracking-wider text-purple-700"
+                className="sticky top-0 z-40 bg-card text-center align-bottom text-xs font-bold uppercase tracking-wider text-purple-700"
               >
                 Final Pay
               </TableHead>
             )}
             <TableHead
               rowSpan={2}
-              className="align-bottom text-xs font-bold uppercase"
+              className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
             >
               Status
             </TableHead>
             {!isMonthly && !readOnly && (
               <TableHead
                 rowSpan={2}
-                className="align-bottom text-xs font-bold uppercase"
+                className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
               >
                 Actions
               </TableHead>
             )}
           </TableRow>
-          <TableRow className="sticky z-40" style={{ top: headerRowHeight }}>
+          <TableRow>
             {showBasic && (
               <>
-                {perms.canViewMonthlyPay && <TableHead className="bg-blue-50 text-xs text-blue-700">MonthlyPay</TableHead>}
-                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Daily</TableHead>}
-                <TableHead className="bg-blue-50 text-xs text-blue-700">Days</TableHead>
-                {perms.canViewDailyRate && <TableHead className="bg-blue-50 text-xs text-blue-700">Total</TableHead>}
+                {perms.canViewMonthlyPay && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>MonthlyPay</TableHead>}
+                {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Daily</TableHead>}
+                <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Days</TableHead>
+                {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Total</TableHead>}
               </>
             )}
             {showEarnings && (
               <>
-                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Days</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Holiday Pay</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Days</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">SNWH Pay</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Wellness</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Comm</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Bday</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Comm.</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Allow</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Bonus</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">13th</TableHead>
-                <TableHead className="bg-green-50 text-xs text-green-700">Total</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Days</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Pay</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Days</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Pay</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Wellness</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bday</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm.</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Allow</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bonus</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>13th</TableHead>
+                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Total</TableHead>
               </>
             )}
             {showDeductions && (
               <>
-                <TableHead className="bg-red-50 text-xs text-red-700">Adv</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">SSS</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">PH</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">Pag</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">HMO</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">Other</TableHead>
-                <TableHead className="bg-red-50 text-xs text-red-700">Total</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Adv</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>SSS</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>PH</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Pag</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>HMO</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Other</TableHead>
+                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Total</TableHead>
               </>
             )}
           </TableRow>
