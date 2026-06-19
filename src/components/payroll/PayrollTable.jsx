@@ -115,7 +115,7 @@ export default function PayrollTable({
           <TableRow className="sticky top-0 z-40 border-b-0">
             <TableHead
               rowSpan={2}
-              className="sticky left-0 z-50 bg-card align-bottom font-bold text-foreground"
+              className="sticky top-0 left-0 z-[70] min-w-[180px] bg-card align-bottom font-bold text-foreground"
             >
               Employee
             </TableHead>
@@ -213,7 +213,7 @@ export default function PayrollTable({
 
             return (
               <TableRow key={emp.id}>
-                <TableCell className="sticky left-0 z-20 bg-card font-medium">
+                <TableCell className="sticky left-0 z-30 min-w-[180px] bg-card font-medium">
                   {emp.name}
                 </TableCell>
                 {showBasic && (
@@ -361,7 +361,7 @@ export default function PayrollTable({
           {/* Totals row */}
           {perms.canViewTotalsRow && totals && (
             <TableRow className="border-t-2 border-border bg-muted font-bold">
-              <TableCell className="sticky left-0 z-20 bg-muted">TOTALS</TableCell>
+              <TableCell className="sticky left-0 z-30 min-w-[180px] bg-muted">TOTALS</TableCell>
               {showBasic && (
                 <>
                   {perms.canViewMonthlyPay && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
