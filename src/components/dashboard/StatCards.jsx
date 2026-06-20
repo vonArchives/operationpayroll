@@ -44,7 +44,7 @@ export default function StatCards({ stats }) {
           return (
             <Card
               key={card.label}
-              className="overflow-hidden bg-[#1972F9] border-[#1972F9] text-white"
+              className="col-span-2 order-first md:col-span-1 md:order-last overflow-hidden bg-[#1972F9] border-[#1972F9] text-white"
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-white/80">
@@ -53,7 +53,7 @@ export default function StatCards({ stats }) {
                 <Icon className="h-4 w-4 text-white/70" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl md:text-2xl font-bold text-white break-words">
                   {card.value}
                 </div>
               </CardContent>
@@ -62,7 +62,7 @@ export default function StatCards({ stats }) {
         }
 
         return (
-          <Card key={card.label} className={cn("overflow-hidden bg-white", card.accentColor)}>
+          <Card key={card.label} className={cn("overflow-hidden bg-white", card.accentColor, card.label === "Pending" && "col-span-2 md:col-span-1")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {card.label}
@@ -70,7 +70,7 @@ export default function StatCards({ stats }) {
               <Icon className={cn("h-4 w-4", card.iconColor)} />
             </CardHeader>
             <CardContent>
-              <div className={cn("text-2xl font-bold", card.valueColor)}>
+              <div className={cn("text-xl md:text-2xl font-bold", card.valueColor)}>
                 {card.value}
               </div>
             </CardContent>
