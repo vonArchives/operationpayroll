@@ -33,6 +33,8 @@ import PayslipCard from "@/components/payroll/PayslipCard";
 import { getInitials } from "@/lib/utils";
 import { Search, ArrowUpDown, Eye, Users, FileText, Plus} from "lucide-react";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useIsMobile } from "@/hooks/useMediaQuery";
+import EmployeeCard from "@/components/employees/EmployeeCard";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 
 const ROLE_BADGES = {
@@ -67,6 +69,7 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const payrollKey = `payroll_${currentPeriod}`;
 
@@ -166,20 +169,32 @@ data = data.filter(
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>
-                        <button
-                          className="flex items-center gap-1"
-                          onClick={() => setSortAsc((v) => !v)}
-                        >
-                          Name
-                          <ArrowUpDown className="h-3.5 w-3.5" />
-                        </button>
-                      </TableHead>
+              {isMobile ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {paginated.map((emp) => (
+                    <EmployeeCard
+                      key={emp.id}
+                      employee={emp}
+                      onOpenPayslip={openPayslip}
+                      canViewPayslip={canViewPayslip}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => setSortAsc((v) => !v)}
+                          >
+                            Name
+                            <ArrowUpDown className="h-3.5 w-3.5" />
+                          </button>
+                        </TableHead>
 <TableHead>Position</TableHead>
                        <TableHead>Role</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -217,6 +232,7 @@ data = data.filter(
                   </TableBody>
                 </Table>
               </div>
+              )}
 
               {totalPages > 1 && (
                 <div className="mt-4">

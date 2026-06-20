@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/lib/supabaseClient";
 import { usePayroll } from "@/hooks/usePayroll";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +37,7 @@ const employeeSchema = z.object({
 export default function AddEmployeeModal({ open, onClose }) {
   const { generatePayrollForNewEmployee, refreshPayrollData } = usePayroll();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMobile = useIsMobile();
 
   const {
     register,
@@ -81,7 +90,71 @@ export default function AddEmployeeModal({ open, onClose }) {
     }
   };
 
-  return (
+  return isMobile ? (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl p-6">
+        <SheetHeader className="mb-4">
+          <SheetTitle>Add New Employee</SheetTitle>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name</Label>
+              <Input id="first_name" {...register("first_name")} />
+              {errors.first_name && <p className="text-xs text-red-500">{errors.first_name.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input id="last_name" {...register("last_name")} />
+              {errors.last_name && <p className="text-xs text-red-500">{errors.last_name.message}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Work Email</Label>
+            <Input id="email" type="email" placeholder="name@jpmorgan.com" {...register("email")} />
+            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="position">Position</Label>
+            <Input id="position" {...register("position")} />
+            {errors.position && <p className="text-xs text-red-500">{errors.position.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role">System Role</Label>
+            <select
+              id="role"
+              {...register("role")}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="employee">Employee (No Access)</option>
+              <option value="moderator">Moderator</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <SheetFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!isValid || isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Employee"
+              )}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  ) : (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

@@ -130,6 +130,15 @@ body {
   min-height: 100svh;
 }
 
+/* Safe-area utilities for PWA / installed apps (notches, home indicators) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   15% { transform: translateX(-7px); }

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computePayroll, formatCurrency } from "@/lib/payrollUtils";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +14,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +68,7 @@ function ReadOnlyInput({ id, value, type = "number" }) {
 export default function EditModal({ employee, open, onClose }) {
   const { editPayroll, payrollSent_period1, payrollSent_period2, currentPeriod, mutationLoading } = usePayroll();
   const perms = useRolePermissions();
+  const isMobile = useIsMobile();
 
   const payrollKey = `payroll_${currentPeriod}`;
   const payrollSent = currentPeriod === "period2" ? payrollSent_period2 : payrollSent_period1;
@@ -171,7 +180,215 @@ export default function EditModal({ employee, open, onClose }) {
     </div>
   );
 
-  return (
+  return isMobile ? (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl p-0">
+        <SheetHeader className="px-6 pt-6">
+          <SheetTitle>Edit Payroll — {employee?.name} ({periodLabel})</SheetTitle>
+        </SheetHeader>
+
+        {perms.editModalNote && (
+          <p className="px-6 text-sm text-muted-foreground">
+            {perms.editModalNote}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="flex flex-col gap-6 px-6 pb-6">
+            {/* Left: form fields */}
+            <ScrollArea className="flex-1 max-h-[70vh]">
+              <div className="space-y-6 pr-4">
+                {/* Basic Pay */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-700">
+                    Basic Pay
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    
+                    {perms.canViewMonthlyPay && (
+                      <div className="space-y-2">
+                        <Label htmlFor="monthly_pay">Monthly Pay</Label>
+                        {perms.canEditField("monthly_pay") ? (
+                          <Input
+                            id="monthly_pay"
+                            type="number"
+                            step="0.01"
+                            {...register("monthly_pay")}
+                            className={cn(errors.monthly_pay && "border-danger")}
+                          />
+                        ) : (
+                          <ReadOnlyInput id="monthly_pay" value={employee?.[payrollKey]?.monthly_pay} />
+                        )}
+                        {errors.monthly_pay && (
+                          <p className="text-xs text-danger">{errors.monthly_pay.message}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="work_days">Work Days</Label>
+                        {perms.canEditField("work_days") ? (
+                        <Input
+                          id="work_days"
+                          type="number"
+                          {...register("work_days")}
+                          className={cn(errors.work_days && "border-danger")}
+                        />
+                      ) : (
+                        <ReadOnlyInput id="work_days" value={employee?.[payrollKey]?.work_days} />
+                      )}
+                      {errors.work_days && (
+                        <p className="text-xs text-danger">{errors.work_days.message}</p>
+                      )}
+                    </div>
+
+                    {/* Daily Rate is now strictly Read-Only and Auto-Calculated */}
+                    {perms.canViewDailyRate && (
+                      <div className="space-y-2">
+                        <Label htmlFor="daily_pay" className="text-muted-foreground">Daily Rate (Auto)</Label>
+                        <Input
+                          id="daily_pay"
+                          type="number"
+                          step="0.01"
+                          {...register("daily_pay")}
+                          readOnly
+                          tabIndex={-1}
+                          className="bg-muted cursor-not-allowed focus-visible:ring-0"
+                        />
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Earnings */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-green-700">
+                    Earnings
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Holiday Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        {renderField("holiday_days", "Holiday Days", "number")}
+                        {renderField("holiday_pay", "Holiday Pay", "number")}
+                      </div>
+                      {renderField("holiday_remarks", "Holiday Remarks", "text", true)}
+                    </div>
+
+                    {/* SNWH Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        {renderField("snwh_days", "SNWH Days", "number")}
+                        {renderField("snwh_pay", "SNWH Pay", "number")}
+                      </div>
+                      {renderField("snwh_remarks", "SNWH Remarks", "text", true)}
+                    </div>
+
+                    {/* Commission Group */}
+                    <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 space-y-2">
+                      {renderField("commission", "Commission", "number")}
+                      {renderField("commission_remarks", "Commission Remarks", "text", true)}
+                    </div>
+
+                    {/* Other Allowances */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {renderField("wellness_allowance", "Wellness", "number")}
+                      {renderField("communication_allowance", "Communication", "number")}
+                      {renderField("birthday_allowance", "Birthday", "number")}
+                      {renderField("allowance", "Allowance", "number")}
+                      {renderField("bonuses", "Bonuses", "number")}
+                      {renderField("thirteenth_month_pay", "13th Month", "number")}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Deductions */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-red-700">
+                    Deductions
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { key: "cash_advance", label: "Cash Advance" },
+                      { key: "sss", label: "SSS" },
+                      { key: "philhealth", label: "PhilHealth" },
+                      { key: "pagibig", label: "Pag-IBIG" },
+                      { key: "hmo", label: "HMO" },
+                      { key: "others", label: "Others" },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="space-y-2">
+                        <Label htmlFor={key}>{label}</Label>
+                        {perms.canEditField(key) ? (
+                          <Input
+                            id={key}
+                            type="number"
+                            step="0.01"
+                            {...register(key)}
+                            className={cn(errors[key] && "border-danger")}
+                          />
+                        ) : (
+                          <ReadOnlyInput id={key} value={employee?.[payrollKey]?.[key]} />
+                        )}
+                        {errors[key] && (
+                          <p className="text-xs text-danger">{errors[key].message}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+
+            {/* Right: live summary */}
+            <div className="w-full shrink-0 lg:w-80">
+              <div className="sticky top-0 rounded-xl border bg-card p-6 shadow-sm">
+                <h3 className="mb-6 text-base font-semibold uppercase tracking-wide text-muted-foreground">
+                  Live Summary
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">Basic Pay</span>
+                    <span className="font-medium">{formatCurrency(live.total_basic_pay)}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">Earnings</span>
+                    <span className="font-medium">{formatCurrency(live.total_earnings)}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-muted-foreground">Deductions</span>
+                    <span className="font-medium">{formatCurrency(live.total_deductions)}</span>
+                  </div>
+                  <Separator />
+                  <div className="rounded-lg bg-primary/5 p-4 text-center">
+                    <p className="text-sm font-medium uppercase tracking-wide text-primary">
+                      Net Pay
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-primary">
+                      {formatCurrency(live.net_pay)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <SheetFooter className="px-6 pb-6">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!isValid || payrollSent || mutationLoading}>
+              {perms.editButtonText}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  ) : (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[95vh] max-w-4xl overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">

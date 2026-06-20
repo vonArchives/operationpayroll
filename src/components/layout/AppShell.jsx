@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import SettingsModal from "@/components/settings/SettingsModal";
@@ -10,6 +11,7 @@ export default function AppShell() {
     const saved = localStorage.getItem("sidebar_collapsed");
     return saved ? JSON.parse(saved) : false;
   });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     const handleStorage = (e) => {
@@ -23,15 +25,22 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-svh bg-[#F4F7FF]">
-      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((prev) => !prev)} />
+      <div className="hidden lg:block">
+        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((prev) => !prev)} />
+      </div>
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-72 p-0">
+          <Sidebar variant="drawer" onNavigate={() => setMobileNavOpen(false)} />
+        </SheetContent>
+      </Sheet>
       <div
         className={cn(
           "flex flex-1 flex-col min-w-0 transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
         )}
       >
-        <Topbar />
-        <main className="flex-1 p-4 lg:p-6">
+        <Topbar onOpenNav={() => setMobileNavOpen(true)} />
+        <main className="flex-1 p-4 lg:p-6 pb-safe">
           <Outlet />
         </main>
       </div>

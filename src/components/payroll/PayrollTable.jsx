@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computePayroll, computeMonthlySummary, formatCurrency } from "@/lib/payrollUtils";
 import {
   Table,
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import EditModal from "./EditModal";
 import AuditLogSheet from "./AuditLogSheet";
+import PayrollCard from "./PayrollCard";
 import {
   Pencil,
   CheckCircle,
@@ -46,6 +48,7 @@ export default function PayrollTable({
   const [auditEmployee, setAuditEmployee] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [headerRowHeight, setHeaderRowHeight] = useState(48);
+  const isMobile = useIsMobile();
 
   const payrollSent = currentPeriod === "period2" ? payrollSent_period2 : payrollSent_period1;
   const payrollKey = isMonthly ? null : `payroll_${currentPeriod}`;
@@ -114,323 +117,362 @@ export default function PayrollTable({
 
   return (
     <>
-      <div className="mb-2 flex justify-end">
-        <Button variant="outline" size="icon" onClick={toggleFullscreen}>
-          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-        </Button>
-      </div>
+      {isMobile ? (
+        <div className="space-y-3">
+          {activeEmployees.map((emp) => (
+            <PayrollCard
+              key={emp.id}
+              employee={emp}
+              showBasic={showBasic}
+              showEarnings={showEarnings}
+              showDeductions={showDeductions}
+              isMonthly={isMonthly}
+              perms={perms}
+              onEdit={(emp) => setEditEmployee(emp)}
+              onAudit={(emp) => setAuditEmployee(emp)}
+            />
+          ))}
+          {perms.canViewTotalsRow && totals && (
+            <div className="rounded-lg border-2 border-border bg-muted p-4 space-y-2">
+              <p className="font-bold text-sm uppercase tracking-wide">Totals</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {showBasic && perms.canViewTotalBasicPay && (
+                  <div><span className="text-muted-foreground">Basic:</span> <span className="font-medium">{formatCurrency(totals.total_basic_pay)}</span></div>
+                )}
+                {showEarnings && (
+                  <div><span className="text-muted-foreground">Earnings:</span> <span className="font-medium">{formatCurrency(totals.total_earnings)}</span></div>
+                )}
+                {showDeductions && (
+                  <div><span className="text-muted-foreground">Deductions:</span> <span className="font-medium">{formatCurrency(totals.total_deductions)}</span></div>
+                )}
+                {perms.canViewFinalPay && (
+                  <div className="col-span-2"><span className="text-muted-foreground">Net Pay:</span> <span className="font-bold text-purple-700">{formatCurrency(totals.net_pay)}</span></div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="mb-2 flex justify-end">
+            <Button variant="outline" size="icon" onClick={toggleFullscreen}>
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+          </div>
 
-      <div
-        ref={tableContainerRef}
-        className="overflow-auto max-h-[calc(100vh-12rem)] [&:fullscreen]:max-h-screen [&:fullscreen]:p-4 [&:fullscreen]:bg-card"
-      >
-        <Table className="border-separate border-spacing-0">
-        <TableHeader>
-          {/* Grouped subheaders */}
-          <TableRow ref={firstHeaderRowRef} className="border-b-0">
-            <TableHead
-              rowSpan={2}
-              className="sticky top-0 left-0 z-[100] min-w-[180px] bg-card align-bottom font-bold text-foreground"
-              style={{ position: "sticky", top: 0, left: 0 }}
-            >
-              Employee
-            </TableHead>
-            {showBasic && (
-              <TableHead
-                colSpan={perms.canViewDailyRate ? 4 : 1}
-                className="sticky top-0 z-40 bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
-              >
-                Basic Pay
-              </TableHead>
-            )}
-            {showEarnings && (
-              <TableHead
-                colSpan={12}
-                className="sticky top-0 z-40 bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
-              >
-                Earnings
-              </TableHead>
-            )}
-            {showDeductions && (
-              <TableHead
-                colSpan={7}
-                className="sticky top-0 z-40 bg-red-50 text-center text-xs font-bold uppercase tracking-wider text-red-700"
-              >
-                Deductions
-              </TableHead>
-            )}
-            {perms.canViewFinalPay && (
-              <TableHead
-                rowSpan={2}
-                className="sticky top-0 z-40 bg-card text-center align-bottom text-xs font-bold uppercase tracking-wider text-purple-700"
-              >
-                Final Pay
-              </TableHead>
-            )}
-            <TableHead
-              rowSpan={2}
-              className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
-            >
-              Status
-            </TableHead>
-            {!isMonthly && !readOnly && (
-              <TableHead
-                rowSpan={2}
-                className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
-              >
-                Actions
-              </TableHead>
-            )}
-          </TableRow>
-          <TableRow>
-            {showBasic && (
-              <>
-                {perms.canViewMonthlyPay && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>MonthlyPay</TableHead>}
-                {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Daily</TableHead>}
-                <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Days</TableHead>
-                {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Total</TableHead>}
-              </>
-            )}
-            {showEarnings && (
-              <>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Days</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Pay</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Days</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Pay</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Wellness</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bday</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm.</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Allow</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bonus</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>13th</TableHead>
-                <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Total</TableHead>
-              </>
-            )}
-            {showDeductions && (
-              <>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Adv</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>SSS</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>PH</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Pag</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>HMO</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Other</TableHead>
-                <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Total</TableHead>
-              </>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {activeEmployees.map((emp) => {
-            const data = getEmployeeData(emp);
-            const payroll = isMonthly ? data : data.payroll || {};
-            const computed = isMonthly ? data : data.computed || {};
-            const status = isMonthly ? null : data.status;
-
-            return (
-              <TableRow key={emp.id}>
-                <TableCell
-                  className="sticky left-0 z-[60] min-w-[180px] bg-card font-medium"
-                  style={{ position: "sticky", left: 0 }}
+          <div
+            ref={tableContainerRef}
+            className="overflow-auto max-h-[calc(100vh-12rem)] [&:fullscreen]:max-h-screen [&:fullscreen]:p-4 [&:fullscreen]:bg-card"
+          >
+            <Table className="border-separate border-spacing-0">
+            <TableHeader>
+              {/* Grouped subheaders */}
+              <TableRow ref={firstHeaderRowRef} className="border-b-0">
+                <TableHead
+                  rowSpan={2}
+                  className="sticky top-0 left-0 z-[100] min-w-[180px] bg-card align-bottom font-bold text-foreground"
+                  style={{ position: "sticky", top: 0, left: 0 }}
                 >
-                  {emp.name}
-                </TableCell>
+                  Employee
+                </TableHead>
+                {showBasic && (
+                  <TableHead
+                    colSpan={perms.canViewDailyRate ? 4 : 1}
+                    className="sticky top-0 z-40 bg-blue-50 text-center text-xs font-bold uppercase tracking-wider text-blue-700"
+                  >
+                    Basic Pay
+                  </TableHead>
+                )}
+                {showEarnings && (
+                  <TableHead
+                    colSpan={12}
+                    className="sticky top-0 z-40 bg-green-50 text-center text-xs font-bold uppercase tracking-wider text-green-700"
+                  >
+                    Earnings
+                  </TableHead>
+                )}
+                {showDeductions && (
+                  <TableHead
+                    colSpan={7}
+                    className="sticky top-0 z-40 bg-red-50 text-center text-xs font-bold uppercase tracking-wider text-red-700"
+                  >
+                    Deductions
+                  </TableHead>
+                )}
+                {perms.canViewFinalPay && (
+                  <TableHead
+                    rowSpan={2}
+                    className="sticky top-0 z-40 bg-card text-center align-bottom text-xs font-bold uppercase tracking-wider text-purple-700"
+                  >
+                    Final Pay
+                  </TableHead>
+                )}
+                <TableHead
+                  rowSpan={2}
+                  className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
+                >
+                  Status
+                </TableHead>
+                {!isMonthly && !readOnly && (
+                  <TableHead
+                    rowSpan={2}
+                    className="sticky top-0 z-40 bg-card align-bottom text-xs font-bold uppercase"
+                  >
+                    Actions
+                  </TableHead>
+                )}
+              </TableRow>
+              <TableRow>
                 {showBasic && (
                   <>
-                    {perms.canViewMonthlyPay && <TableCell>{formatCurrency(payroll.monthly_pay)}</TableCell>}
-                    {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll?.daily_pay)}</TableCell>}
-                    <TableCell>{payroll?.work_days || 0}</TableCell>
-                    {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
+                    {perms.canViewMonthlyPay && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>MonthlyPay</TableHead>}
+                    {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Daily</TableHead>}
+                    <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Days</TableHead>
+                    {perms.canViewDailyRate && <TableHead className="sticky z-40 bg-blue-50 text-xs text-blue-700" style={{ top: headerRowHeight }}>Total</TableHead>}
                   </>
                 )}
                 {showEarnings && (
                   <>
-                    <TableCell>{payroll?.holiday_days || 0}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.holiday_pay)}</TableCell>
-                    <TableCell>{payroll?.snwh_days || 0}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.snwh_pay)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.wellness_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.communication_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.birthday_allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.commission)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.allowance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.bonuses)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.thirteenth_month_pay)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(computed?.total_earnings)}</TableCell>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Days</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Holiday Pay</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Days</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>SNWH Pay</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Wellness</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bday</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Comm.</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Allow</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Bonus</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>13th</TableHead>
+                    <TableHead className="sticky z-40 bg-green-50 text-xs text-green-700" style={{ top: headerRowHeight }}>Total</TableHead>
                   </>
                 )}
                 {showDeductions && (
                   <>
-                    <TableCell>{formatCurrency(payroll?.cash_advance)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.sss)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.philhealth)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.pagibig)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.hmo)}</TableCell>
-                    <TableCell>{formatCurrency(payroll?.others)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(computed?.total_deductions)}</TableCell>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Adv</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>SSS</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>PH</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Pag</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>HMO</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Other</TableHead>
+                    <TableHead className="sticky z-40 bg-red-50 text-xs text-red-700" style={{ top: headerRowHeight }}>Total</TableHead>
                   </>
                 )}
-                {perms.canViewFinalPay && (
-                  <TableCell className="font-bold text-purple-700">
-                    {formatCurrency(computed?.net_pay)}
-                  </TableCell>
-                )}
-                <TableCell>
-                  {isMonthly ? (
-                    <Badge variant="secondary">Combined</Badge>
-                  ) : (
-                    <Badge variant={status === "Approved" ? "success" : "warning"}>
-                      {status}
-                    </Badge>
-                  )}
-                </TableCell>
-                {!isMonthly && !readOnly && (
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-border bg-card hover:bg-muted"
-                                disabled={payrollSent || mutationLoading}
-                                onClick={() => setEditEmployee(emp)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </span>
-                          </TooltipTrigger>
-                          {(payrollSent || mutationLoading) && (
-                            <TooltipContent>
-                              {payrollSent ? "Edit disabled after payroll sent" : "Saving..."}
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      {perms.canApprovePayroll && (
-                        status === "Pending" ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
-                                    disabled={payrollSent || mutationLoading}
-                                    onClick={() => approvePayroll(emp.id, perms.user?.name, perms.user?.emp_id, currentPeriod)}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              {(payrollSent || mutationLoading) && (
-                                <TooltipContent>
-                                  {payrollSent ? "Approve disabled after payroll sent" : "Saving..."}
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
-                                    disabled={payrollSent || mutationLoading}
-                                    onClick={() => unapprovePayroll(emp.id, perms.user?.name, currentPeriod)}
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              {(payrollSent || mutationLoading) && (
-                                <TooltipContent>
-                                  {payrollSent ? "Unapprove disabled after payroll sent" : "Saving..."}
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        )
-                      )}
-
-                      {perms.canViewAuditLog && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 border-border bg-card hover:bg-muted"
-                          onClick={() => setAuditEmployee(emp)}
-                        >
-                          <ClipboardList className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
-            );
-          })}
+            </TableHeader>
+            <TableBody>
+              {activeEmployees.map((emp) => {
+                const data = getEmployeeData(emp);
+                const payroll = isMonthly ? data : data.payroll || {};
+                const computed = isMonthly ? data : data.computed || {};
+                const status = isMonthly ? null : data.status;
 
-          {/* Totals row */}
-          {perms.canViewTotalsRow && totals && (
-            <TableRow className="border-t-2 border-border bg-muted font-bold">
-              <TableCell
-                className="sticky left-0 z-[60] min-w-[180px] bg-muted"
-                style={{ position: "sticky", left: 0 }}
-              >
-                TOTALS
-              </TableCell>
-              {showBasic && (
-                <>
-                  {perms.canViewMonthlyPay && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
-                  {perms.canViewDailyRate && <TableCell>{formatCurrency(totals?.daily_pay)}</TableCell>}
-                  <TableCell>{totals?.work_days || 0}</TableCell>
-                  {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals?.total_basic_pay)}</TableCell>}
-                </>
+                return (
+                  <TableRow key={emp.id}>
+                    <TableCell
+                      className="sticky left-0 z-[60] min-w-[180px] bg-card font-medium"
+                      style={{ position: "sticky", left: 0 }}
+                    >
+                      {emp.name}
+                    </TableCell>
+                    {showBasic && (
+                      <>
+                        {perms.canViewMonthlyPay && <TableCell>{formatCurrency(payroll.monthly_pay)}</TableCell>}
+                        {perms.canViewDailyRate && <TableCell>{formatCurrency(payroll?.daily_pay)}</TableCell>}
+                        <TableCell>{payroll?.work_days || 0}</TableCell>
+                        {perms.canViewTotalBasicPay && <TableCell className="font-medium">{formatCurrency(computed?.total_basic_pay)}</TableCell>}
+                      </>
+                    )}
+                    {showEarnings && (
+                      <>
+                        <TableCell>{payroll?.holiday_days || 0}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.holiday_pay)}</TableCell>
+                        <TableCell>{payroll?.snwh_days || 0}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.snwh_pay)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.wellness_allowance)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.communication_allowance)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.birthday_allowance)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.commission)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.allowance)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.bonuses)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.thirteenth_month_pay)}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(computed?.total_earnings)}</TableCell>
+                      </>
+                    )}
+                    {showDeductions && (
+                      <>
+                        <TableCell>{formatCurrency(payroll?.cash_advance)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.sss)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.philhealth)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.pagibig)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.hmo)}</TableCell>
+                        <TableCell>{formatCurrency(payroll?.others)}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(computed?.total_deductions)}</TableCell>
+                      </>
+                    )}
+                    {perms.canViewFinalPay && (
+                      <TableCell className="font-bold text-purple-700">
+                        {formatCurrency(computed?.net_pay)}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      {isMonthly ? (
+                        <Badge variant="secondary">Combined</Badge>
+                      ) : (
+                        <Badge variant={status === "Approved" ? "success" : "warning"}>
+                          {status}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    {!isMonthly && !readOnly && (
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 border-border bg-card hover:bg-muted"
+                                    disabled={payrollSent || mutationLoading}
+                                    onClick={() => setEditEmployee(emp)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              {(payrollSent || mutationLoading) && (
+                                <TooltipContent>
+                                  {payrollSent ? "Edit disabled after payroll sent" : "Saving..."}
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {perms.canApprovePayroll && (
+                            status === "Pending" ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
+                                        disabled={payrollSent || mutationLoading}
+                                        onClick={() => approvePayroll(emp.id, perms.user?.name, perms.user?.emp_id, currentPeriod)}
+                                      >
+                                        <CheckCircle className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  {(payrollSent || mutationLoading) && (
+                                    <TooltipContent>
+                                      {payrollSent ? "Approve disabled after payroll sent" : "Saving..."}
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+                                        disabled={payrollSent || mutationLoading}
+                                        onClick={() => unapprovePayroll(emp.id, perms.user?.name, currentPeriod)}
+                                      >
+                                        <XCircle className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  {(payrollSent || mutationLoading) && (
+                                    <TooltipContent>
+                                      {payrollSent ? "Unapprove disabled after payroll sent" : "Saving..."}
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            )
+                          )}
+
+                          {perms.canViewAuditLog && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 border-border bg-card hover:bg-muted"
+                              onClick={() => setAuditEmployee(emp)}
+                            >
+                              <ClipboardList className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+
+              {/* Totals row */}
+              {perms.canViewTotalsRow && totals && (
+                <TableRow className="border-t-2 border-border bg-muted font-bold">
+                  <TableCell
+                    className="sticky left-0 z-[60] min-w-[180px] bg-muted"
+                    style={{ position: "sticky", left: 0 }}
+                  >
+                    TOTALS
+                  </TableCell>
+                  {showBasic && (
+                    <>
+                      {perms.canViewMonthlyPay && <TableCell>{formatCurrency(totals.monthly_pay)}</TableCell>}
+                      {perms.canViewDailyRate && <TableCell>{formatCurrency(totals?.daily_pay)}</TableCell>}
+                      <TableCell>{totals?.work_days || 0}</TableCell>
+                      {perms.canViewTotalBasicPay && <TableCell>{formatCurrency(totals?.total_basic_pay)}</TableCell>}
+                    </>
+                  )}
+                  {showEarnings && (
+                    <>
+                      <TableCell>{totals?.holiday_days || 0}</TableCell>
+                      <TableCell>{formatCurrency(totals?.holiday_pay)}</TableCell>
+                      <TableCell>{totals?.snwh_days || 0}</TableCell>
+                      <TableCell>{formatCurrency(totals?.snwh_pay)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.wellness_allowance)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.communication_allowance)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.birthday_allowance)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.commission)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.allowance)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.bonuses)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.thirteenth_month_pay)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.total_earnings)}</TableCell>
+                    </>
+                  )}
+                  {showDeductions && (
+                    <>
+                      <TableCell>{formatCurrency(totals?.cash_advance)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.sss)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.philhealth)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.pagibig)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.hmo)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.others)}</TableCell>
+                      <TableCell>{formatCurrency(totals?.total_deductions)}</TableCell>
+                    </>
+                  )}
+                  <TableCell className="text-purple-700">
+                    {formatCurrency(totals?.net_pay)}
+                  </TableCell>
+                  <TableCell />
+                  {!isMonthly && !readOnly && <TableCell />}
+                </TableRow>
               )}
-              {showEarnings && (
-                <>
-                  <TableCell>{totals?.holiday_days || 0}</TableCell>
-                  <TableCell>{formatCurrency(totals?.holiday_pay)}</TableCell>
-                  <TableCell>{totals?.snwh_days || 0}</TableCell>
-                  <TableCell>{formatCurrency(totals?.snwh_pay)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.wellness_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.communication_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.birthday_allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.commission)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.allowance)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.bonuses)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.thirteenth_month_pay)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.total_earnings)}</TableCell>
-                </>
-              )}
-              {showDeductions && (
-                <>
-                  <TableCell>{formatCurrency(totals?.cash_advance)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.sss)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.philhealth)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.pagibig)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.hmo)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.others)}</TableCell>
-                  <TableCell>{formatCurrency(totals?.total_deductions)}</TableCell>
-                </>
-              )}
-              <TableCell className="text-purple-700">
-                {formatCurrency(totals?.net_pay)}
-              </TableCell>
-              <TableCell />
-              {!isMonthly && !readOnly && <TableCell />}
-            </TableRow>
-          )}
-        </TableBody>
-        </Table>
-      </div>
+            </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {editEmployee && (
         <EditModal

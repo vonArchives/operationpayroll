@@ -33,10 +33,12 @@ const adminNavItems = [
   { name: "Cash Advance", href: "/cash-advance", icon: Wallet },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, variant = "desktop", onNavigate }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const { isAdmin } = useRolePermissions();
+
+  const isDrawer = variant === "drawer";
 
   /*
    added this to clear entire react memory tree
@@ -48,16 +50,20 @@ export default function Sidebar({ collapsed, onToggle }) {
   };
 
   useEffect(() => {
-    localStorage.setItem("sidebar_collapsed", JSON.stringify(collapsed));
-  }, [collapsed]);
+    if (!isDrawer) {
+      localStorage.setItem("sidebar_collapsed", JSON.stringify(collapsed));
+    }
+  }, [collapsed, isDrawer]);
 
   const initials = getInitials(user?.name, "U");
 
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
-        collapsed ? "w-20" : "w-72"
+        isDrawer
+          ? "flex h-full w-72 flex-col"
+          : "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
+        !isDrawer && (collapsed ? "w-20" : "w-72")
       )}
       style={{ backgroundColor: NAVY_BG, borderRight: `1px solid ${NAVY_BORDER}` }}
     >
@@ -68,48 +74,53 @@ export default function Sidebar({ collapsed, onToggle }) {
       >
         <Link
           to="/dashboard"
+          onClick={() => onNavigate?.()}
           className={cn(
             "flex items-center font-bold text-xl transition-all",
-            collapsed ? "gap-0" : "gap-2"
+            isDrawer ? "gap-2" : collapsed ? "gap-0" : "gap-2"
           )}
           style={{ color: WHITE }}
         >
-          {!collapsed && (
+          {isDrawer || !collapsed ? (
             <>
               <div className="bg-white rounded-xl p-1.5 shrink-0">
                 <img src={logo} alt="JPMC" className="h-8 w-8 object-contain" />
               </div>
               <span className="truncate">JPMC Payroll</span>
             </>
-          )}
+          ) : null}
         </Link>
-        <button
-          onClick={onToggle}
-          className={cn(
-            "ml-auto rounded-md p-1 transition-colors",
-            collapsed && "ml-0 mt-2"
-          )}
-          style={{ color: WHITE_60 }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = WHITE_60)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-        </button>
+        {!isDrawer && (
+          <button
+            onClick={onToggle}
+            className={cn(
+              "ml-auto rounded-md p-1 transition-colors",
+              collapsed && "ml-0 mt-2"
+            )}
+            style={{ color: WHITE_60 }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = WHITE)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = WHITE_60)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2 p-3">
         {[...baseNavItems, ...(isAdmin ? adminNavItems : [])].map((item) => {
           const isActive = pathname === item.href;
+          const showLabel = isDrawer || !collapsed;
           return (
             <Link
               key={item.name}
               to={item.href}
+              onClick={() => onNavigate?.()}
               className={cn(
                 "flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-medium transition-colors",
-                collapsed && "justify-center px-2"
+                !isDrawer && collapsed && "justify-center px-2"
               )}
               style={{
                 color: isActive ? WHITE : WHITE_70,
@@ -121,13 +132,13 @@ export default function Sidebar({ collapsed, onToggle }) {
               onMouseLeave={(e) => {
                 if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
               }}
-              title={collapsed ? item.name : undefined}
+              title={!isDrawer && collapsed ? item.name : undefined}
             >
               <item.icon
                 className="h-6 w-6 shrink-0"
                 style={{ color: isActive ? BRAND_BLUE : WHITE_60 }}
               />
-              {!collapsed && <span className="truncate">{item.name}</span>}
+              {showLabel && <span className="truncate">{item.name}</span>}
             </Link>
           );
         })}
@@ -135,15 +146,15 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       {/* User */}
       <div className="p-3" style={{ borderTop: `1px solid ${NAVY_BORDER}` }}>
-        <div className={cn("flex items-center", collapsed ? "flex-col gap-3" : "gap-4")}>
+        <div className={cn("flex items-center", isDrawer || !collapsed ? "gap-4" : "flex-col gap-3")}>
           <div
             className="flex h-11 w-11 items-center justify-center rounded-full text-base font-semibold shrink-0"
             style={{ backgroundColor: NAVY_LIGHT, color: WHITE }}
-            title={collapsed ? user?.name : undefined}
+            title={!isDrawer && collapsed ? user?.name : undefined}
           >
             {initials}
           </div>
-          {!collapsed && (
+          {(isDrawer || !collapsed) && (
             <div className="flex-1 min-w-0">
               <p className="text-base font-medium truncate" style={{ color: WHITE }}>
                 {user?.name}
