@@ -27,18 +27,21 @@ const DEDUCTIONS_KEYS = [
 ];
 
 /**
- * Generates a PDF and triggers the Supabase Edge Function to email it.
- * 
- * @param {Object} emp - The employee object (needs .name, .position, .email)
- * @param {Object} payroll - The uncomputed payroll data for the period
- * @param {Object} computed - The computed totals (net_pay, etc.)
- * @param {String} periodLabel - The formatted period text (e.g., "Period 1 - Oct 2026")
- * @param {String} overrideEmail - (Optional) Hardcoded email for testing
- * @returns {Promise<Boolean>} - True if successful, false if failed
+ * Generates a completely unique 4-character Reference Number (e.g., A7F2)
  */
+function generateReferenceNumber() {
+  return Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
 export async function generateAndSendPayslip(emp, payroll, computed, periodLabel, overrideEmail = null) {
   try {
-    // 1. Generate the HTML String
+    // Safely grab the ID
+    const employeeId = emp.id || emp.emp_id; 
+
+    // 1. Generate the unique reference number using the safe ID
+    const referenceNo = generateReferenceNumber();
+
+    // 2. Generate the HTML String (Added Reference Number in the Header)
     const pdfHTML = `
       <div id="payslip-pdf-container" style="width: 700px; padding: 40px; background: white; font-family: 'Segoe UI', sans-serif; color: #0f172a;">
         <style>
@@ -46,6 +49,7 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
           #payslip-pdf-container .header h1 { font-size: 24px; font-weight: 700; margin: 0; }
           #payslip-pdf-container .header p { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 4px; margin-bottom: 0; }
           #payslip-pdf-container .header .period { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+          #payslip-pdf-container .header .ref-no { font-size: 10px; color: #94a3b8; margin-top: 4px; font-family: monospace; }
           #payslip-pdf-container .employee-info { margin-bottom: 20px; }
           #payslip-pdf-container .employee-info .name { font-weight: 600; font-size: 14px; margin: 0; }
           #payslip-pdf-container .employee-info .detail { font-size: 13px; color: #64748b; margin: 0; }
@@ -63,6 +67,7 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
           <h1>JPMC Payroll</h1>
           <p>Official Payslip</p>
           <p class="period">${periodLabel}</p>
+          <p class="ref-no">REF: ${referenceNo}</p>
         </div>
         <div class="employee-info">
           <p class="name">${emp.name}</p>
@@ -103,7 +108,7 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
       </div>
     `;
 
-    // 2. Mount the invisible DOM node
+    // 3. Mount the invisible DOM node
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = pdfHTML;
     tempDiv.style.position = "absolute";
@@ -113,7 +118,7 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
     tempDiv.style.opacity = "0";
     document.body.appendChild(tempDiv);
 
-    // 3. Snapshot and convert to PDF
+    // 4. Snapshot and convert to PDF
     const targetElement = document.getElementById("payslip-pdf-container");
     const canvas = await html2canvas(targetElement, { 
       scale: 2, 
@@ -122,7 +127,6 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
     });
     const imgData = canvas.toDataURL("image/png");
     
-    // Clean up the DOM immediately!
     document.body.removeChild(tempDiv); 
 
     const pdf = new jsPDF("p", "pt", "a4");
@@ -133,10 +137,10 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
     const pdfDataUri = pdf.output("datauristring");
     const pdfBase64 = pdfDataUri.split(",")[1];
 
-    // 4. Fire to Edge Function
+    // 5. Fire to Edge Function
     const targetEmail = overrideEmail ? overrideEmail : emp.email;
 
-    const { error } = await supabase.functions.invoke('send-payslip', {
+    const { error: emailError } = await supabase.functions.invoke('send-payslip', {
       body: {
         email: targetEmail,
         employeeName: emp.name,
@@ -145,9 +149,21 @@ export async function generateAndSendPayslip(emp, payroll, computed, periodLabel
       }
     });
 
-    if (error) throw error;
+    if (emailError) throw emailError;
     
-    // Successfully sent!
+    // 6. IF SUCCESSFUL: Log it silently to the database!
+    const { error: dbError } = await supabase.from('payslip_records').insert({
+      reference_no: referenceNo,
+      emp_id: employeeId,
+      employee_name: emp.name,
+      period_label: periodLabel,
+      net_pay: computed.net_pay
+    });
+
+    if (dbError) {
+      console.error("Email sent, but failed to log to payslip_records table:", dbError);
+    }
+
     return true;
 
   } catch (err) {

@@ -143,7 +143,7 @@ export default function PayslipCard({ employee, period, payrollDate, payrollData
       payroll, 
       computed, 
       periodLabel, 
-      null 
+      null
     );
 
     if (success) {
