@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,10 +34,11 @@ const employeeSchema = z.object({
   position: z.string().min(1, "Position is required"),
 });
 
-export default function AddEmployeeModal({ open, onClose }) {
+export default function AddEmployeeModal({ open, onClose, employee = null }) {
   const { generatePayrollForNewEmployee, refreshPayrollData } = usePayroll();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
+  const isEditing = Boolean(employee);
 
   const {
     register,
@@ -52,39 +53,66 @@ export default function AddEmployeeModal({ open, onClose }) {
     mode: "onChange",
   });
 
+  useEffect(() => {
+    if (!open) return;
+
+    reset(
+      employee
+        ? {
+            first_name: employee.first_name || "",
+            last_name: employee.last_name || "",
+            email: employee.email || "",
+            role: employee.role || "employee",
+            position: employee.position || "",
+          }
+        : { role: "employee" }
+    );
+  }, [employee, open, reset]);
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      // 1. Insert the new employee into the database
-      const { data: newEmp, error } = await supabase
-        .from("employee")
-        .insert({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          email: data.email,
-          role: data.role,
-          position: data.position,
-          status: "Active", // Assuming new hires are active!
-        })
-        .select("emp_id")
-        .single();
+      const employeeDetails = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        role: data.role,
+        position: data.position,
+      };
 
-      if (error) throw error;
+      if (isEditing) {
+        const employeeId = employee.emp_id ?? employee.id;
+        if (!employeeId) throw new Error("Employee ID is missing.");
 
-      // 2. Trigger our new Smart Function to generate their zero-value payroll rows
-      if (newEmp?.emp_id) {
-        await generatePayrollForNewEmployee(newEmp.emp_id);
+        const { error } = await supabase
+          .from("employee")
+          .update(employeeDetails)
+          .eq("emp_id", employeeId);
+
+        if (error) throw error;
+        toast.success(`${data.first_name} ${data.last_name} updated successfully!`);
+      } else {
+        const { data: newEmp, error } = await supabase
+          .from("employee")
+          .insert({ ...employeeDetails, status: "Active" })
+          .select("emp_id")
+          .single();
+
+        if (error) throw error;
+
+        if (newEmp?.emp_id) {
+          await generatePayrollForNewEmployee(newEmp.emp_id);
+        }
+
+        toast.success(`${data.first_name} added to the system successfully!`);
       }
 
-      // 3. Refresh the global payroll state so they appear in the UI instantly
       refreshPayrollData();
-      
-      toast.success(`${data.first_name} added to the system successfully!`);
-      reset(); // Clear the form
-      onClose(); // Close the modal
+      reset();
+      onClose();
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to add employee.");
+      toast.error(err.message || `Failed to ${isEditing ? "update" : "add"} employee.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -94,7 +122,7 @@ export default function AddEmployeeModal({ open, onClose }) {
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl p-6">
         <SheetHeader className="mb-4">
-          <SheetTitle>Add New Employee</SheetTitle>
+          <SheetTitle>{isEditing ? "Edit Employee" : "Add New Employee"}</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -147,7 +175,7 @@ export default function AddEmployeeModal({ open, onClose }) {
                   Saving...
                 </>
               ) : (
-                "Save Employee"
+                isEditing ? "Save Changes" : "Save Employee"
               )}
             </Button>
           </SheetFooter>
@@ -158,7 +186,7 @@ export default function AddEmployeeModal({ open, onClose }) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Employee" : "Add New Employee"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -211,7 +239,7 @@ export default function AddEmployeeModal({ open, onClose }) {
                   Saving...
                 </>
               ) : (
-                "Save Employee"
+                isEditing ? "Save Changes" : "Save Employee"
               )}
             </Button>
           </DialogFooter>

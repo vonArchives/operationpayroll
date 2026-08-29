@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/pagination";
 import PayslipCard from "@/components/payroll/PayslipCard";
 import { getInitials } from "@/lib/utils";
-import { Search, ArrowUpDown, Eye, Users, FileText, Plus} from "lucide-react";
+import { Search, ArrowUpDown, Eye, Users, FileText, Plus, Pencil } from "lucide-react";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import EmployeeCard from "@/components/employees/EmployeeCard";
@@ -62,20 +62,17 @@ function TableSkeleton() {
 
 export default function Employees() {
   const { employees, payrollPeriod, currentPeriod, loading, error } = usePayroll();
-  const { isAdmin, canViewPayslip } = useRolePermissions();
+  const { isAdmin, canViewPayslip, canEditEmployee } = useRolePermissions();
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const isMobile = useIsMobile();
 
   const payrollKey = `payroll_${currentPeriod}`;
-
-  const activeEmployeesForPeriod = employees.filter((employee) => {
-    return employee[payrollKey] !== undefined && employee[payrollKey] !== null;
-  });
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -106,6 +103,10 @@ data = data.filter(
   const openPayslip = (emp) => {
     setSelectedEmployee(emp);
     setDialogOpen(true);
+  };
+
+  const openEmployeeEditor = (emp) => {
+    setEmployeeToEdit(emp);
   };
 
   const roleBadge = (role) => {
@@ -177,6 +178,8 @@ data = data.filter(
                       employee={emp}
                       onOpenPayslip={openPayslip}
                       canViewPayslip={canViewPayslip}
+                      onEditEmployee={openEmployeeEditor}
+                      canEditEmployee={canEditEmployee}
                     />
                   ))}
                 </div>
@@ -215,18 +218,30 @@ data = data.filter(
                         </TableCell>
 <TableCell>{emp.position}</TableCell>
                          <TableCell>{roleBadge(emp.role)}</TableCell>
-                        <TableCell className="text-right">
-                          {canViewPayslip && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openPayslip(emp)}
-                            >
-                              <Eye className="mr-1 h-4 w-4" />
-                              View Payslip
-                            </Button>
-                          )}
-                        </TableCell>
+                         <TableCell className="text-right">
+                           <div className="flex justify-end gap-1">
+                             {canViewPayslip && (
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => openPayslip(emp)}
+                               >
+                                 <Eye className="mr-1 h-4 w-4" />
+                                 View Payslip
+                               </Button>
+                             )}
+                             {canEditEmployee && (
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => openEmployeeEditor(emp)}
+                               >
+                                 <Pencil className="mr-1 h-4 w-4" />
+                                 Edit
+                               </Button>
+                             )}
+                           </div>
+                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -315,8 +330,12 @@ data = data.filter(
       {/* Add Employee Modal */}
       {isAdmin && (
         <AddEmployeeModal 
-          open={isAddModalOpen} 
-          onClose={() => setIsAddModalOpen(false)} 
+          open={isAddModalOpen || !!employeeToEdit}
+          employee={employeeToEdit}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEmployeeToEdit(null);
+          }}
         />
       )}
     </div>
