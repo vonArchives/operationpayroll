@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { usePayroll } from "@/hooks/usePayroll";
 import { useAuth } from "@/context/AuthContext";
-import { computePayroll, computeMonthlySummary, toNum, formatCurrency, formatPayslipDateRange } from "@/lib/payrollUtils";
+import { computePayroll, computeMonthlySummary, toNum, formatPayslipDateRange } from "@/lib/payrollUtils";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import PayrollTable from "@/components/payroll/PayrollTable";
-import { generateAndSendPayslip } from "@/lib/payslipEmailer"; 
+import { generateAndSendPayslip } from "@/lib/payslipEmailer";
+import { exportPayrollSummary } from "@/lib/payrollExport";
 
 import {
   Card,
@@ -42,7 +43,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Send, X, Plus, TriangleAlert, Loader2 } from "lucide-react";
+import { Search, Send, X, Plus, TriangleAlert, Loader2, Download } from "lucide-react";
 
 const PERIODS = [
   { key: "period1", label: "Period 1", sub: "Mid-Month" },
@@ -51,7 +52,13 @@ const PERIODS = [
 ];
 
 export default function PayrollRun() {
-  const { isAdmin } = useRolePermissions();
+  const {
+    isAdmin,
+    canViewMonthlyPay,
+    canViewDailyRate,
+    canViewTotalBasicPay,
+    canViewFinalPay,
+  } = useRolePermissions();
   const {
     employees,
     payrollPeriod,
@@ -80,6 +87,7 @@ export default function PayrollRun() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newMonth, setNewMonth] = useState("");
   const [creating, setCreating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
@@ -113,6 +121,11 @@ export default function PayrollRun() {
     if (isMonthly) return employees.filter(e => e.payroll_period1 || e.payroll_period2);
     return employees.filter(e => e[payrollKey] !== undefined && e[payrollKey] !== null);
   }, [employees, isMonthly, payrollKey]);
+
+  const exportEmployees = useMemo(() => {
+    if (isMonthly) return filteredEmployees.filter((employee) => employee.payroll_period1 || employee.payroll_period2);
+    return filteredEmployees.filter((employee) => employee[payrollKey] !== undefined && employee[payrollKey] !== null);
+  }, [filteredEmployees, isMonthly, payrollKey]);
 
   const approvedCount = useMemo(() => {
     if (isMonthly) return 0;
@@ -255,6 +268,36 @@ export default function PayrollRun() {
     return t;
   }, [filteredEmployees, isMonthly, payrollKey]);
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const count = await exportPayrollSummary({
+        employees: exportEmployees,
+        isMonthly,
+        payrollKey,
+        statusKey,
+        selectedMonth,
+        currentPeriod,
+        showBasic,
+        showEarnings,
+        showDeductions,
+        permissions: {
+          canViewMonthlyPay,
+          canViewDailyRate,
+          canViewTotalBasicPay,
+          canViewFinalPay,
+        },
+        totals,
+      });
+      toast.success(`Exported ${count} employee${count === 1 ? "" : "s"} to Excel.`);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to export payroll summary.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-6">
@@ -291,6 +334,26 @@ export default function PayrollRun() {
 
         {/* Right — Action buttons */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleExport}
+              disabled={loading || exportEmployees.length === 0 || isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Export to Excel
+                </>
+              )}
+            </Button>
+          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
