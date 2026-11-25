@@ -22,6 +22,7 @@ import {
 import EditModal from "./EditModal";
 import AuditLogSheet from "./AuditLogSheet";
 import PayrollCard from "./PayrollCard";
+import { cn } from "@/lib/utils";
 import {
   Pencil,
   CheckCircle,
@@ -55,11 +56,35 @@ export default function PayrollTable({
   const statusKey = isMonthly ? null : `status_${currentPeriod}`;
   const auditLogKey = isMonthly ? null : `auditLog_${currentPeriod}`;
 
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      tableContainerRef.current?.requestFullscreen?.();
-    } else {
+  // Native fullscreen when the browser allows it; otherwise (e.g. embedded
+  // browsers that block the Fullscreen API) expand the table over the app.
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isMaximized = isFullscreen || isExpanded;
+
+  const toggleFullscreen = async () => {
+    if (isFullscreen) {
       document.exitFullscreen?.();
+      return;
+    }
+    if (isExpanded) {
+      setIsExpanded(false);
+      return;
+    }
+    const el = tableContainerRef.current;
+    if (!document.fullscreenEnabled || !el?.requestFullscreen) {
+      setIsExpanded(true);
+      return;
+    }
+    // Some embedded browsers reject, and some never settle the promise at all,
+    // so fall back if fullscreen hasn't started shortly after the click.
+    const fallback = setTimeout(() => {
+      if (!document.fullscreenElement) setIsExpanded(true);
+    }, 400);
+    try {
+      await el.requestFullscreen();
+    } catch {
+      clearTimeout(fallback);
+      setIsExpanded(true);
     }
   };
 
@@ -73,6 +98,18 @@ export default function PayrollTable({
 
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onKey = (e) => e.key === "Escape" && setIsExpanded(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isExpanded]);
 
   useEffect(() => {
     const updateHeaderRowHeight = () => {
@@ -155,15 +192,36 @@ export default function PayrollTable({
       ) : (
         <>
           <div className="mb-2 flex justify-end">
-            <Button variant="outline" size="icon" onClick={toggleFullscreen}>
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleFullscreen}
+              aria-label="Expand table"
+              title="Expand table"
+            >
+              <Maximize2 className="h-4 w-4" />
             </Button>
           </div>
 
           <div
             ref={tableContainerRef}
-            className="overflow-auto max-h-[calc(100vh-12rem)] [&:fullscreen]:max-h-screen [&:fullscreen]:p-4 [&:fullscreen]:bg-card"
+            className={cn(
+              "overflow-auto max-h-[calc(100vh-12rem)] [&:fullscreen]:max-h-screen [&:fullscreen]:p-4 [&:fullscreen]:bg-card",
+              isExpanded && "fixed inset-0 z-[60] max-h-none bg-card p-4"
+            )}
           >
+            {isMaximized && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleFullscreen}
+                className="fixed bottom-4 right-4 z-[120] shadow-lg"
+              >
+                <Minimize2 className="h-4 w-4" />
+                Exit full screen
+                <kbd className="ml-1 rounded border bg-muted px-1 text-[10px] text-muted-foreground">Esc</kbd>
+              </Button>
+            )}
             <Table className="border-separate border-spacing-0">
             <TableHeader>
               {/* Grouped subheaders */}

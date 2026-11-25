@@ -3,11 +3,15 @@ import { useCashAdvances } from "@/hooks/useCashAdvances";
 import { formatCurrency } from "@/lib/payrollUtils";
 import CashAdvanceCard from "@/components/cashadvance/CashAdvanceCard";
 import CashAdvanceModal from "@/components/cashadvance/CashAdvanceModal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard, ProgressBar } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCardsSkeleton } from "@/components/ui/page-skeletons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X, Plus, Wallet, Loader2 } from "lucide-react";
+import { Search, X, Plus, Wallet, Loader2, HandCoins, TrendingUp, AlertCircle } from "lucide-react";
 
 export default function CashAdvance() {
   const {
@@ -99,75 +103,37 @@ export default function CashAdvance() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Cash Advance
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track employee loans and payment progress.
-          </p>
-        </div>
-        <Button onClick={handleNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Cash Advance
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Cash Advance"
+        description="Track employee loans and payment progress."
+        actions={
+          <Button onClick={handleNew}>
+            <Plus />
+            New cash advance
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Loans
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{summary.activeLoans}</p>
-            <p className="text-xs text-muted-foreground">
-              of {summary.totalLoans} total
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Loaned
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {formatCurrency(summary.totalAmount)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Collected
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {formatCurrency(summary.totalPaid)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Outstanding
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-red-600">
-              {formatCurrency(summary.totalBalance)}
-            </p>
-          </CardContent>
-        </Card>
+      {loading ? (
+        <StatCardsSkeleton />
+      ) : (
+      <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Active loans" value={summary.activeLoans} icon={Wallet} tone="primary" hint={`of ${summary.totalLoans} total`} />
+        <StatCard label="Total loaned" value={formatCurrency(summary.totalAmount)} icon={HandCoins} />
+        <StatCard
+          label="Total collected"
+          value={formatCurrency(summary.totalPaid)}
+          icon={TrendingUp}
+          tone="success"
+          hint={summary.totalAmount ? `${Math.round((summary.totalPaid / summary.totalAmount) * 100)}% repaid` : undefined}
+        >
+          <ProgressBar value={summary.totalAmount ? (summary.totalPaid / summary.totalAmount) * 100 : 0} />
+        </StatCard>
+        <StatCard label="Outstanding" value={formatCurrency(summary.totalBalance)} icon={AlertCircle} tone="danger" />
       </div>
+      )}
 
       {/* Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -191,15 +157,15 @@ export default function CashAdvance() {
           )}
         </div>
 
-        <div className="flex rounded-lg border bg-card p-1 w-fit">
+        <div className="flex w-fit rounded-lg border bg-card p-0.5 shadow-sm">
           {["all", "active", "completed"].map((f) => (
             <button
               key={f}
               onClick={() => setStatusFilter(f)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+              className={`rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors ${
                 statusFilter === f
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {f}
@@ -210,7 +176,7 @@ export default function CashAdvance() {
 
       {/* Cards Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-5 space-y-4">
@@ -229,19 +195,28 @@ export default function CashAdvance() {
           ))}
         </div>
       ) : filteredRecords.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Wallet className="mb-4 h-12 w-12 text-muted-foreground" />
-          <p className="text-lg font-medium text-muted-foreground">
-            No cash advances found
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {records.length === 0
-              ? "Create a new cash advance to get started."
-              : "Try adjusting your search or filters."}
-          </p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={Wallet}
+            title="No cash advances found"
+            hint={
+              records.length === 0
+                ? "Create a new cash advance to get started."
+                : "Try adjusting your search or filters."
+            }
+            action={
+              records.length === 0 && (
+                <Button variant="outline" onClick={handleNew}>
+                  <Plus />
+                  New cash advance
+                </Button>
+              )
+            }
+            className="py-14"
+          />
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredRecords.map((record) => (
             <CashAdvanceCard
               key={record.id}
