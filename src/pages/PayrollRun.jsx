@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonthPicker } from "@/components/ui/MonthPicker";
+import { ProgressBar } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/page-skeletons";
 import {
   Tooltip,
   TooltipContent,
@@ -310,22 +313,21 @@ export default function PayrollRun() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Payroll Summary — {payrollPeriod}
-          </h1>
-          {!isMonthly && (
-            <div className="mt-2 flex items-center gap-3">
-              <div className="h-2 w-48 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <span className="text-sm text-muted-foreground">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Payroll Summary</h1>
+          <p className="text-sm text-muted-foreground">{payrollPeriod}</p>
+          {loading && !isMonthly ? (
+            <div className="flex items-center gap-3 pt-2">
+              <Skeleton className="h-1.5 w-48 rounded-full" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ) : !isMonthly && (
+            <div className="flex items-center gap-3 pt-2">
+              <ProgressBar value={progress} className="w-48" barClassName={allApproved ? "bg-success" : "bg-primary"} />
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {approvedCount} of {totalCount} approved ({progress}%)
               </span>
             </div>
@@ -485,49 +487,49 @@ export default function PayrollRun() {
         </Dialog>
       )}
 
-      {/* Month Selector */}
-      {isAdmin && availableMonths.length > 0 && (
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-muted-foreground">
-            Month:
-          </label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => switchMonth(e.target.value)}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            {availableMonths.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+      <Card className="overflow-hidden">
+      {/* Toolbar row 1: periods + month */}
+      <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full overflow-x-auto rounded-lg bg-muted p-1 sm:w-fit" role="tablist">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              role="tab"
+              aria-selected={currentPeriod === p.key}
+              onClick={() => switchPeriod && switchPeriod(p.key)}
+              className={`flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all sm:flex-none ${
+                currentPeriod === p.key
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+              <span className="ml-1 hidden text-xs font-normal text-muted-foreground md:inline">· {p.sub}</span>
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* Period Selector */}
-      <div className="flex rounded-lg border bg-card p-1 w-fit">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => switchPeriod && switchPeriod(p.key)}
-            className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              currentPeriod === p.key
-                ? "bg-primary text-white"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <span>{p.label}</span>
-            <span className={`ml-1 text-xs ${currentPeriod === p.key ? "text-white/80" : ""}`}>
-              {p.sub}
-            </span>
-          </button>
-        ))}
+        {isAdmin && availableMonths.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Month
+            <select
+              value={selectedMonth}
+              onChange={(e) => switchMonth(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+            >
+              {availableMonths.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-72">
+      {/* Toolbar row 2: search, status filter, column toggles */}
+      <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:w-72">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
@@ -548,15 +550,15 @@ export default function PayrollRun() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!isMonthly && (
-            <div className="flex rounded-lg border bg-card p-1">
+            <div className="flex rounded-lg border bg-card p-0.5 shadow-sm">
               {["all", "pending", "approved"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                  className={`rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors ${
                     filter === f
-                      ? "bg-primary text-white"
-                      : "text-muted-foreground hover:bg-muted"
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {f}
@@ -564,7 +566,8 @@ export default function PayrollRun() {
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-1.5 shadow-sm">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Columns</span>
             <label className="flex cursor-pointer items-center gap-1.5 text-sm">
               <input
                 type="checkbox"
@@ -597,30 +600,22 @@ export default function PayrollRun() {
       </div>
 
       {/* Table */}
-      <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-4">
           {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-16" />
+            <div aria-busy="true" className="overflow-hidden rounded-lg border">
+              {/* Grouped header bands like the real table: basic / earnings / deductions */}
+              <div className="flex h-9 items-center gap-2 border-b px-3">
+                <Skeleton className="h-3 w-24" />
+                <div className="ml-[72px] flex flex-1 gap-2">
+                  <div className="h-5 flex-1 animate-pulse rounded bg-blue-50" />
+                  <div className="h-5 flex-[1.4] animate-pulse rounded bg-green-50" />
+                  <div className="hidden h-5 flex-1 animate-pulse rounded bg-red-50 xl:block" />
                 </div>
-              ))}
+              </div>
+              <TableRowsSkeleton rows={6} columns={7} />
             </div>
           ) : filteredEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Search className="mb-3 h-10 w-10 text-muted-foreground" />
-              <p className="text-sm font-medium text-muted-foreground">
-                No employees found
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Try adjusting your search or filters.
-              </p>
-            </div>
+            <EmptyState icon={Search} title="No employees found" hint="Try adjusting your search or filters." />
           ) : (
             <PayrollTable
               employees={filteredEmployees}

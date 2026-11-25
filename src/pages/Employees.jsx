@@ -9,7 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,24 +40,39 @@ import EmployeeCard from "@/components/employees/EmployeeCard";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 
 const ROLE_BADGES = {
-  admin: { label: "Admin", variant: "default" },
-  moderator: { label: "Moderator", variant: "secondary" },
-  employee: { label: "Employee", variant: "outline" },
+  admin: { label: "Admin", variant: "info" },
+  moderator: { label: "Moderator", variant: "warning" },
+  employee: { label: "Employee", variant: "neutral" },
 };
 
 function TableSkeleton() {
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="ml-auto h-8 w-20" />
-        </div>
-      ))}
+    <div aria-busy="true">
+      <div className="flex h-10 items-center gap-4 border-b bg-muted/60 px-4">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="ml-[140px] h-3 w-16" />
+        <Skeleton className="ml-[70px] h-3 w-10" />
+        <Skeleton className="ml-auto h-3 w-14" />
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-3">
+            <div className="flex w-[220px] items-center gap-3">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3.5 w-28" />
+                <Skeleton className="h-3 w-36" />
+              </div>
+            </div>
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="ml-6 h-5 w-16 rounded-full" />
+            <div className="ml-auto flex gap-2">
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton className="h-8 w-14 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -98,7 +115,13 @@ data = data.filter(
     setCurrentPage(1);
   }, [search, sortAsc]);
 
-  if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
+  if (error) {
+    return (
+      <div className="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger">
+        Error: {String(error.message || error)}
+      </div>
+    );
+  }
   
   const openPayslip = (emp) => {
     setSelectedEmployee(emp);
@@ -117,27 +140,26 @@ data = data.filter(
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        {/* Left Side: Title */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
-          <p className="text-muted-foreground">
-            Manage and view employee details and payslips.
-          </p>
-        </div>
-        
-        {/* Right Side: Actions & Search */}
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
-          {isAdmin && (
-            <Button 
-              onClick={() => setIsAddModalOpen(true)} 
-              className="w-full sm:w-auto gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Employee
+    <div className="space-y-6">
+      <PageHeader
+        title="Employees"
+        description="Manage employee details and view payslips."
+        actions={
+          isAdmin && (
+            <Button onClick={() => setIsAddModalOpen(true)} className="w-full sm:w-auto">
+              <Plus />
+              Add employee
             </Button>
-          )}
+          )
+        }
+      />
+
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold">Directory</h2>
+            {!loading && <Badge variant="neutral">{filtered.length}</Badge>}
+          </div>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -149,25 +171,19 @@ data = data.filter(
             />
           </div>
         </div>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-0">
-          <CardTitle className="text-base">Employee Directory</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className={isMobile ? "p-4" : "p-0"}>
           {loading ? (
-            <TableSkeleton />
+            isMobile ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <TableSkeleton />
+            )
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Users className="mb-3 h-10 w-10 text-muted-foreground" />
-              <p className="text-sm font-medium text-muted-foreground">
-                No employees found
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Try adjusting your search.
-              </p>
-            </div>
+            <EmptyState icon={Users} title="No employees found" hint="Try adjusting your search." />
           ) : (
             <>
               {isMobile ? (
@@ -188,35 +204,37 @@ data = data.filter(
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12"></TableHead>
                         <TableHead>
                           <button
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1 uppercase hover:text-foreground"
                             onClick={() => setSortAsc((v) => !v)}
                           >
-                            Name
+                            Employee
                             <ArrowUpDown className="h-3.5 w-3.5" />
                           </button>
                         </TableHead>
-<TableHead>Position</TableHead>
-                       <TableHead>Role</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginated.map((emp) => (
                       <TableRow key={emp.id}>
                         <TableCell>
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(emp.name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                                {getInitials(emp.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{emp.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{emp.email}</p>
+                            </div>
+                          </div>
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {emp.name}
-                        </TableCell>
-<TableCell>{emp.position}</TableCell>
+                        <TableCell className="text-muted-foreground">{emp.position}</TableCell>
                          <TableCell>{roleBadge(emp.role)}</TableCell>
                          <TableCell className="text-right">
                            <div className="flex justify-end gap-1">
@@ -250,7 +268,7 @@ data = data.filter(
               )}
 
               {totalPages > 1 && (
-                <div className="mt-4">
+                <div className="border-t p-3">
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>

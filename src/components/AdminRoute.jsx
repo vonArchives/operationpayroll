@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2 } from "lucide-react";
+import { PageHeaderSkeleton, StatCardsSkeleton } from "@/components/ui/page-skeletons";
 
 export default function AdminRoute({ children }) {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -9,8 +9,9 @@ export default function AdminRoute({ children }) {
   // This prevents the "flash" of redirecting to /dashboard
   if (isInitializing) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#0B2757]">
-        <Loader2 className="h-8 w-8 animate-spin text-white opacity-50" />
+      <div className="space-y-6" aria-busy="true">
+        <PageHeaderSkeleton />
+        <StatCardsSkeleton />
       </div>
     );
   }

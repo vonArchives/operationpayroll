@@ -5,10 +5,12 @@ import React, {
   useCallback,
   useEffect,
   useState,
+  useMemo,
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
-import { shapeEmployees } from "@/lib/payrollTransformer";
+import { shapeEmployees, shapePeriod } from "@/lib/payrollTransformer";
+import { computePayroll } from "@/lib/payrollUtils";
 import { usePayrollMutations } from "@/hooks/usePayrollMutations";
 import { useAuth } from "@/context/AuthContext";
 
@@ -325,6 +327,29 @@ export function PayrollProvider({ children }) {
     
   }, [allPeriodData]);
 
+  // Per-month totals across every loaded period (oldest first) for dashboard charts.
+  const monthlyTrend = useMemo(() => {
+    const byMonth = {};
+    allPeriodData.forEach((p) => {
+      if (!p.date_from) return;
+      const [y, m, d] = p.date_from.split("-").map(Number);
+      const key = `${y}-${String(m).padStart(2, "0")}`;
+      const c = computePayroll(shapePeriod(p));
+      const row = (byMonth[key] ||= {
+        key,
+        label: new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        netPay: 0, basic: 0, additions: 0, deductions: 0, period1Net: 0, period2Net: 0,
+      });
+      row.netPay += c.net_pay;
+      row.basic += c.total_basic_pay;
+      row.additions += c.total_earnings - c.total_basic_pay;
+      row.deductions += c.total_deductions;
+      if (d <= 15) row.period1Net += c.net_pay;
+      else row.period2Net += c.net_pay;
+    });
+    return Object.values(byMonth).sort((a, b) => a.key.localeCompare(b.key));
+  }, [allPeriodData]);
+
   const { editPayroll, approvePayroll, unapprovePayroll, sendPayroll, createPayrollMonth, generatePayrollForNewEmployee } =
     usePayrollMutations(dispatch, state.employees, setMutationLoading, refreshPayrollData);
 
@@ -343,6 +368,7 @@ export function PayrollProvider({ children }) {
           error,
           mutationLoading,
           payrollSent,
+          monthlyTrend,
           switchPeriod,
           switchMonth,
           editPayroll,

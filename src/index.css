@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   --color-background: hsl(var(--background));
@@ -35,48 +36,69 @@
   --color-warning-foreground: hsl(var(--warning-foreground));
   --color-danger: hsl(var(--danger));
   --color-danger-foreground: hsl(var(--danger-foreground));
+  --color-info: hsl(var(--info));
+  --color-text-primary: hsl(var(--foreground));
+  --color-brand: hsl(var(--brand-blue));
+  --color-brand-navy: hsl(var(--brand-navy));
+  --color-brand-blue-light: hsl(var(--brand-blue-light));
+  --color-sidebar-muted: hsl(var(--sidebar-muted));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 4px 16px -4px rgb(30 54 130 / 0.10);
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.05), 0 12px 28px -8px rgb(30 54 130 / 0.18);
+  --font-sans: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 :root {
-  --background: 220 33% 97%;
+  --background: 220 20% 97%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  --primary: 214 95% 54%;
+  --primary: 224.5 69.5% 56.3%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 222 30% 94%;
-  --secondary-foreground: 214 95% 54%;
-  --muted: 210 40% 97%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 218 96% 65%;
-  --accent-foreground: 0 0% 100%;
+  --secondary: 224 85% 96%;
+  --secondary-foreground: 226 63% 40%;
+  --muted: 220 20% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 220 20% 95%;
+  --accent-foreground: 222 47% 11%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 221 68% 56%;
-  --radius: 0.5rem;
-  --sidebar-background: 218 78% 19%;
+  --border: 220 16% 91%;
+  --input: 220 14% 87%;
+  --ring: 224.5 69.5% 56.3%;
+  --radius: 0.75rem;
+  --info: 224.5 69.5% 56.3%;
+  --sidebar-muted: 0 0% 100% / 0.85;
+  --chart-1: 224.5 69.5% 56.3%;
+  --chart-2: 224 75% 76%;
+  --chart-3: 152 60% 42%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 0 72% 56%;
+  --sidebar-background: 225.6 62.5% 31.4%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 214 95% 54%;
+  --sidebar-primary: 224 85% 74%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 218 78% 24%;
+  --sidebar-accent: 226 52% 39%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 218 78% 24%;
-  --sidebar-ring: 214 95% 54%;
-  --success: 142 71% 45%;
+  --sidebar-border: 226 48% 39%;
+  --sidebar-ring: 224.5 69.5% 56.3%;
+  --success: 152 60% 38%;
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
+  --warning: 32 95% 44%;
   --warning-foreground: 0 0% 100%;
   --danger: 0 72% 51%;
   --danger-foreground: 0 0% 100%;
 
   /* Brand Colors */
-  --brand-blue: 214 95% 54%;
-  --brand-navy: 218 78% 19%;
-  --brand-blue-light: 218 96% 65%;
+  --brand-blue: 224.5 69.5% 56.3%;
+  --brand-navy: 225.6 62.5% 31.4%;
+  --brand-blue-light: 224 75% 76%;
 }
 
 .dark {
@@ -115,14 +137,26 @@
   --danger-foreground: 0 0% 100%;
 }
 
-* {
-  border-color: hsl(var(--border));
+/* In the base layer so border-color utilities (e.g. border-danger/20) can override it. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: hsl(var(--border));
+  }
 }
 
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 #root {
@@ -147,4 +181,41 @@ body {
   60% { transform: translateX(5px); }
   75% { transform: translateX(-2px); }
   90% { transform: translateX(2px); }
+}
+
+/* ---------- Motion ----------
+   Cheap entrance animations: opacity + transform only (GPU-composited),
+   run once on mount, and disabled for users who prefer reduced motion. */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Children enter one after another (first 8; later ones share the last delay). */
+.stagger > * {
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(n + 8) { animation-delay: 350ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

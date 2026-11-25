@@ -4,7 +4,7 @@
  * No React or side effects.
  */
 
-function shapePeriod(period) {
+export function shapePeriod(period) {
   if (!period) return null;
   
   const basicpay = Array.isArray(period.payroll_basicpay)
